@@ -49,6 +49,7 @@ def solve_darcy_on_doughnut_brain(mesh, f, T, num_steps,
     
     p_data = np.ndarray((num_steps, len(probe_points)))
     p_obs_data = np.ndarray((num_steps, len(probe_points)))
+    f_data = np.ndarray((num_steps, len(probe_points)))
 
     J = 0
     for n in range(num_steps):
@@ -79,6 +80,8 @@ def solve_darcy_on_doughnut_brain(mesh, f, T, num_steps,
         for i, point in enumerate(probe_points):
 
             p_data[n,i] = p(point)
+            f_data[n,i] = f(point)
+
            
         if p_obs:
             J += assemble( inner(p - p_obs, p - p_obs)*dx + alpha/2 * f**2 * dx )
@@ -90,6 +93,7 @@ def solve_darcy_on_doughnut_brain(mesh, f, T, num_steps,
     results = {"p":p}
     if probe_points:
         results["probe_point_data"] = p_data
+        results["probe_point_f_data"] = f_data
     if p_obs:
         results["J"] = J
     if probe_points and p_obs:
