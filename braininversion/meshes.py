@@ -1,5 +1,5 @@
 from fenics import * 
-from fenics_adjoint import *
+#from fenics_adjoint import *
 from mshr import *
 
 def generate_doughnut_mesh(brain_radius, ventricle_radius, N):

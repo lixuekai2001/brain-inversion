@@ -41,7 +41,7 @@ def plot_pressures_and_forces_cross_section(pressures, forces, time_idx,
                  **style_dict[force_name],
                  label=force_name)
 
-    plt.ylabel("g in 1/s")
+    #plt.ylabel("g in 1/s")
     plt.xlabel("x in m")
     plt.grid()
     plt.legend(loc="upper center")
@@ -98,7 +98,7 @@ def plot_pressures_and_forces_timeslice(pressures, forces, point_idx, times):
                  **style_dict[force_name],
                  label=force_name)
 
-    plt.ylabel("g in 1/s")
+    #plt.ylabel("g in 1/s")
     plt.xlabel("t in s")
     plt.grid()
     plt.legend(loc="upper center")

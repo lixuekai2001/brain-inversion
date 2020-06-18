@@ -64,10 +64,6 @@ def solve_biot(mesh, f, g, T, num_steps, material_parameter,
         vq = TestFunctions(VW)
         v, qT, qF = vq[0], vq[1], vq[2]
 
-    #u_.assign(interpolate(u_initial, VW.sub(0).collapse()))
-    #p_.assign(interpolate(p_initial, VW.sub(2).collapse()))
-    #p_T_.assign(project(lmbda*div(u_) - p_, VW.sub(1).collapse())  )
-
 
     dtdpF =  (pF - pF_)/dt
     dtdpT = (pT - pT_)/dt
@@ -90,7 +86,6 @@ def solve_biot(mesh, f, g, T, num_steps, material_parameter,
         ctrls_f = None
         time_dep_expr_theta.append(f)
 
-    #F1 = 2*mu*inner(eps(u_theta), eps(v))*dx + p_T_theta*div(v)*dx - inner(f,v)*dx
     F1 = inner(2*mu*sym(grad(u_theta)), sym(grad(v)))*dx + pT_theta*div(v)*dx - inner(f,v)*dx
 
     if u_nullspace:
@@ -100,17 +95,10 @@ def solve_biot(mesh, f, g, T, num_steps, material_parameter,
             s = ss[i]
             F1 += r* inner (v , e )*dx + s* inner (u , e )*dx
 
-    #F2 = (c* dtdp + alpha/lmbda *(dtdp_T + dtdp) )*q *dx + \
-    #    K *inner(grad(p_theta), grad(q))*dx - g*q*dx
-
-    #F2 = qT * div(u_theta) *dx #- alpha/lmbda*(pF_theta + pT_theta) *qT *dx
     F2 = qT * div(u_theta) *dx - alpha/lmbda*(pF_theta + pT_theta) *qT *dx
 
 
-    #F3 = (c* dtdpF + (1/lmbda) *(dtdpT + alpha**2*dtdpF) )*qF *dx + K *inner(grad(pF_theta), grad(qF))*dx - g*qF*dx   
     F3 = (c* dtdpF + (alpha/lmbda) *(dtdpT + alpha*dtdpF) )*qF *dx + K *inner(grad(pF_theta), grad(qF))*dx - g*qF*dx   
-
-    #F3 = (lmbda*div(u_theta) - p_theta - p_T_theta) *q_T *dx
 
     dirichlet_bcs = []
 
@@ -166,20 +154,7 @@ def solve_biot(mesh, f, g, T, num_steps, material_parameter,
     A = assemble(a)
     for bc in dirichlet_bcs:
         bc.apply(A)
-    #sym_tol = 1e-10
-    #print(f" Matrix A is symmetric: {as_backend_type(A).mat().isSymmetric(sym_tol)} with tolerance {sym_tol}")
-
-    #eigensolver = SLEPcEigenSolver(as_backend_type(A))
-    #eigensolver.parameters['problem_type'] = 'hermitian'
-    #eigensolver.parameters['spectrum'] = 'smallest magnitude'
-    #eigensolver.solve(5)
-
-    #assert eigensolver.get_number_converged() > 3
-    #print('3. Eigenvalues:')
-    #for i in range(5):
-        #w = eigensolver.get_eigenvalue(i)
-        #print(w)
-   
+    
     if solver_type=="LU":
         solver = LUSolver(A, "mumps")
         #solver.parameters["symmetric"] = True
@@ -222,7 +197,7 @@ def solve_biot(mesh, f, g, T, num_steps, material_parameter,
         for bc in dirichlet_bcs:
             bc.apply(b)
         # Compute solution
-        #solver.solve(up.vector(), b)
+        #solver.solve(up.vector(), b) # this should be used to avoid reassambly of A, but there is some bug in case of rigid motions...
         solve(a==L, up ,bcs=dirichlet_bcs)
         up_n.assign(up)
         yield up_n
