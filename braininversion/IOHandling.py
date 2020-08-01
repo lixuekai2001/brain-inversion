@@ -1,6 +1,6 @@
 
 from fenics import *
-from fenics_adjoint import *
+#from fenics_adjoint import *
 import pyvista as pv
 import meshio
 import numpy as np

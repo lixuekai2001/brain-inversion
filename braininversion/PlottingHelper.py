@@ -137,8 +137,8 @@ def extract_cross_section_from_expression(expression, points, times):
     values = np.ndarray((nt, npoints, value_dim))
     for k, p in enumerate(points):
         for i,t in enumerate(times):
-                expression.t = t
-                values[i, k, :] = expression(p) 
+            expression.t = t
+            values[i, k, :] = expression(p) 
     return values
 
 

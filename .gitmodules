@@ -1,0 +1,3 @@
+[submodule "BrainMeshLibrary"]
+	path = BrainMeshLibrary
+	url = https://github.com/OpenJData/BrainMeshLibrary.git

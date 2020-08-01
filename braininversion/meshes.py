@@ -1,6 +1,12 @@
 from fenics import * 
-#from fenics_adjoint import *
+from multiphenics import *
 from mshr import *
+import jdata as jd
+import numpy as np
+import scipy.io
+import pyvista as pv
+import numpy as np
+import vtk
 
 def generate_doughnut_mesh(brain_radius, ventricle_radius, N):
     brain = Circle(Point(0,0), brain_radius)
@@ -33,3 +39,73 @@ def generate_flower_mesh(brain_radius, n_petals, N):
     ventricle.mark(boundarymarker, 1)
     skull.mark(boundarymarker, 2)
     return mesh, boundarymarker
+
+def jmesh_to_vtk(infile, outfile, infile_dict, outfile_dict, reduce=False, scaling=1.0):
+    if infile.endswith(".jmsh"):
+        jmesh = jd.load(infile)
+        meshElem = jmesh["MeshElem"]
+        points = jmesh["MeshVertex3"]*scaling
+    elif infile.endswith(".mat"):
+        mat_contents = scipy.io.loadmat(infile)
+        points = mat_contents["node"]*scaling
+        meshElem = mat_contents["elem"]
+    subdomains = meshElem[:,4]
+    if reduce:
+        subdomains[subdomains==infile_dict["other"]] = 10
+        subdomains[subdomains==infile_dict["scalp"]] = 10
+        subdomains[subdomains==infile_dict["skull"]] = 10
+        subdomains[subdomains==infile_dict["CSF"]] = outfile_dict["fluid_id"]
+        subdomains[subdomains==infile_dict["WM"]] = outfile_dict["porous_id"]
+        subdomains[subdomains==infile_dict["GM"]] = outfile_dict["porous_id"]
+        
+    n = meshElem.shape[0]
+    p = 4 # number of points per cell for TETRA
+
+    c = np.insert(meshElem[:,:4] - 1, 0, p, axis=1)
+    cell_type = np.repeat(vtk.VTK_TETRA, n)
+    offset = np.arange(start=0, stop=n*(p+1), step=p+1)
+    grid = pv.UnstructuredGrid(offset, c, cell_type, points)
+    grid.cell_arrays["subdomains"] = subdomains.flatten()
+    if reduce:
+        grid = grid.threshold(5, scalars="subdomains", invert=True)
+    grid.save(outfile)
+
+
+def generate_subdomain_restriction(mesh, subdomains, subdomain_id):
+    D = mesh.topology().dim()
+    # Initialize empty restriction
+    restriction = MeshRestriction(mesh, None)
+    for d in range(D + 1):
+        mesh_function_d = MeshFunction("bool", mesh, d)
+        mesh_function_d.set_all(False)
+        restriction.append(mesh_function_d)
+    # Mark restriction mesh functions based on subdomain id
+    for c in cells(mesh):
+        if subdomains[c] == subdomain_id:
+            restriction[D][c] = True
+            for d in range(D):
+                for e in entities(c, d):
+                    restriction[d][e] = True
+    # Return
+    return restriction
+
+def extract_internal_interface(mesh,subdomains, boundaries, interface_id):
+    # set internal interface
+    for f in facets(mesh):
+        domains = []
+        for c in cells(f):
+            domains.append(subdomains[c])
+
+        domains = list(set(domains))
+        if len(domains) > 1:
+            boundaries[f] = interface_id
+
+def set_external_boundaries(mesh, subdomains, boundaries, subdomain_id, boundary_id, midpoint_criterion):
+    for f in facets(mesh):
+        domains = []
+        for c in cells(f):
+            domains.append(subdomains[c])
+        domains = list(set(domains))
+        if f.exterior() and len(domains) == 1:
+            if domains[0] == subdomain_id and midpoint_criterion(f.midpoint().array()):
+                boundaries[f] = boundary_id

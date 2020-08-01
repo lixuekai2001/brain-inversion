@@ -115,13 +115,13 @@ def solve_biot(mesh, f, g, T, num_steps, material_parameter,
                 time_dep_expr_full.append(bc_val)
                 break
             if bc_type=="Neumann":
-                F2 += K*qF*bc_val*ds_p(marker_id)
+                F3 += K*qF*bc_val*ds_p(marker_id)
                 time_dep_expr_full.append(bc_val)
                 break
             if bc_type=="Robin":
                 beta = bc_val[0]
                 r = bc_val[1]
-                F2 += (-beta*pF + r)*K*qF*ds_p(marker_id)
+                F3 += (-beta*pF + r)*K*qF*ds_p(marker_id)
                 time_dep_expr_full.append(r)
                 break
             print(f"Warning! bc_type {bc_type} not supported!")
@@ -150,19 +150,19 @@ def solve_biot(mesh, f, g, T, num_steps, material_parameter,
     F = F1 + F2 + F3
     
     (a, L) = system(F)
-    #A, b = assemble_system(a, L, dirichlet_bcs)
-    A = assemble(a)
+    A, b = assemble_system(a, L, dirichlet_bcs)
+    #print(f"A symmetric: {as_backend_type(A).isSymmetric()}")
     for bc in dirichlet_bcs:
         bc.apply(A)
     
     if solver_type=="LU":
-        solver = LUSolver(A, "mumps")
-        #solver.parameters["symmetric"] = True
+        solver = LUSolver(A, "umfpack")
+        solver.parameters["symmetric"] = True
 
     elif solver_type=="krylov":
         solver = PETScKrylovSolver("gmres","hypre_amg")
-        solver.parameters["relative_tolerance"] = 1e-10
-        solver.parameters["maximum_iterations"] = 100000
+        solver.parameters["relative_tolerance"] = 1e-6
+        solver.parameters["maximum_iterations"] = 1000
         solver.parameters["monitor_convergence"] = True
 
         pu = mu * inner(grad(u), grad(v))*dx
@@ -197,8 +197,7 @@ def solve_biot(mesh, f, g, T, num_steps, material_parameter,
         for bc in dirichlet_bcs:
             bc.apply(b)
         # Compute solution
-        #solver.solve(up.vector(), b) # this should be used to avoid reassambly of A, but there is some bug in case of rigid motions...
-        solve(a==L, up ,bcs=dirichlet_bcs)
+        solver.solve(up.vector(), b)
         up_n.assign(up)
         yield up_n
         
@@ -223,12 +222,6 @@ def update_operator(expr, time):
         expr.t = time
 
 
-class OneExpression(UserExpression):
-    def eval(self, value, x):
-        value[0] = 1.0
-    def value_shape(self):
-        return (1,)
-
 def rigid_motions(mesh):
 
     gdim = mesh.geometry().dim()
@@ -240,7 +233,7 @@ def rigid_motions(mesh):
     c = Constant(c)
 
     if gdim == 1:       
-        translations = [(OneExpression())]        
+        translations = [Constant([1.0])]        
         return translations
     
     if gdim == 2:
