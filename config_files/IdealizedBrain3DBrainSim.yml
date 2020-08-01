@@ -1,0 +1,27 @@
+# Config file for coupled Fluid Porous Interaction Brain Sim (all units SI)
+mesh_dir_name : ideal_brain_3D_N50
+num_threads : 2
+log_level : 16
+T : 0.2
+num_steps : 5
+material_parameter:
+  E : 1500 # Young modulus
+  nu : 0.479 # Poisson ratio
+  rho_s : 1000
+  alpha : 1
+  kappa : 1.0e-17
+  c : 1.0e-7
+  rho_f : 1.0e+3
+  mu_f : 1.0e-3
+source_data:
+  #source_expression : "A*sin(2*pi*t*f)"
+  source_file : ../data/baladont_tot_inflow_series.csv
+  source_params:
+    A : 1.0e-3
+    f : 1.0
+  scale_by_total_vol : True
+  scaling : 1.0e-9 ## mm^3 to m^3
+sliprate : 0.0
+linearize : True
+
+

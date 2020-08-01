@@ -1,0 +1,12 @@
+# config file for 3D idealized brain mesh generation
+dim : 3
+N : 50 
+brain_radius : 0.1
+fluid_radius : 0.12
+ventricle_radius :  0.03
+aqueduct_width : 0.005
+canal_width : 0.04
+canal_length : 0.2
+ventricle_probe : [0, 0, 0]
+sas_probe : [0.11, 0.0, 0.0 ]
+parenchyma_probe : [0.05,0.0, 0.0]

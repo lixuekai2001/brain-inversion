@@ -1,0 +1,7 @@
+# Config File for Colins 27 mesh conversion
+path : "../BrainMeshLibrary/Colin27BrainMesh/MMC_Collins_Atlas_Mesh_Version_2L.mat"
+scaling : 0.001 # mm to m
+extract_subd : True
+add_spinal_outlet : True
+spinal_outlet_radius : 0.01
+spinal_outlet_midpoint : [0.088, 0.088, 0.006]
