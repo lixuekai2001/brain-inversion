@@ -122,7 +122,7 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
     def a_F(u,v):
         return rho_f*dot(u/dt, v)*dxF \
                 + 2*mu_f*inner(eps(u), eps(v))*dxF \
-                + (gamma*mu_f/sqrt(kappa))*inner(proj_t(u("+")), v("+"))*ds_Sig
+                + (gamma*mu_f/sqrt(kappa))*inner(proj_t(u("+")), proj_t(v("+")))*ds_Sig
 
     if linearize:
         def c_F(u,v):
@@ -138,7 +138,7 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
         return qP("+")*inner(v("+"), n)*ds_Sig + div(v)*qP*Constant(0.0)*dxD
 
     def b_3_Sig(v, d):
-        return - ((gamma*mu_f/sqrt(kappa))*inner(proj_t(v("+")), d("+"))*ds_Sig)
+        return - ((gamma*mu_f/sqrt(kappa))*inner(proj_t(v("+")), proj_t(d("+")))*ds_Sig)
 
 
     def b_4_Sig(w,qP):
@@ -146,7 +146,7 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
 
     def a_1_P(d, w):
         return 2.0*mu_s*inner(eps(d), eps(w))*dxP \
-                + (gamma*mu_f/sqrt(kappa))*inner(proj_t(d("+")/dt), w("+"))*ds_Sig
+                + (gamma*mu_f/sqrt(kappa))*inner(proj_t(d("+")/dt), proj_t(w("+")))*ds_Sig
 
 
     def b_1_P(w, psi):
@@ -177,7 +177,7 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
         return F_F(v) + rho_f*inner(u_n/dt, v)*dxF + b_3_Sig(v, d_n/dt)
 
     def F_P_n(w):
-        return F_P(w) + (gamma*mu_f/sqrt(kappa))*inner(proj_t(d_n("+")/dt), w("+"))*ds_Sig
+        return F_P(w) + (gamma*mu_f/sqrt(kappa))*inner(proj_t(d_n("+")/dt), proj_t(w("+")))*ds_Sig
 
     def G_n(qP):
         return G(qP) + (c + (alpha**2)/lmbda)*pP_n/dt*qP*dxP \
