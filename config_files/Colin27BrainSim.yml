@@ -1,12 +1,12 @@
 # Config file for coupled Fluid Porous Interaction Brain Sim
-mesh_dir_name : MMCCollins_Atlas_Mesh_Version_2L
+mesh_dir_name : MMC_Collins_Atlas_Mesh_Version_2L
 num_threads : 2
 log_level : 16
-T : 1.0
-num_steps : 40
+T : 2.0
+num_steps : 80
 material_parameter:
   E : 1500 # Young modulus
-  mu : 0.479 # Poisson ratio
+  nu : 0.479 # Poisson ratio
   rho_s : 1000
   alpha : 1
   kappa : 1.0e-17
@@ -15,10 +15,12 @@ material_parameter:
   mu_f : 1.0e-3
 source_data:
   source_expression : "A*sin(2*pi*t*f)"
-  A : 1.0e-3
-  f : 1.0
+  source_params:
+    A : 1.0e-3
+    f : 1.0
   scale_by_total_vol : True
 sliprate : 0.0
+linearize : True
 element_type : mini
 
 

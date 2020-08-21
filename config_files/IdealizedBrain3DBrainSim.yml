@@ -1,9 +1,9 @@
 # Config file for coupled Fluid Porous Interaction Brain Sim (all units SI)
-mesh_dir_name : ideal_brain_3D_N50
+mesh_dir_name : ideal_brain_3D_N80
 num_threads : 2
 log_level : 16
-T : 2.0
-num_steps : 50
+T : 0.2
+num_steps : 5
 material_parameter:
   E : 1500 # Young modulus
   nu : 0.479 # Poisson ratio
