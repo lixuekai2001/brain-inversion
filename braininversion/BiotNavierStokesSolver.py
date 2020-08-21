@@ -4,6 +4,8 @@ import os
 import ufl
 import numpy as np
 from pathlib import Path
+from multiphenics.la import BlockDefaultFactory
+
 
 #from tqdm import tqdm
 
@@ -195,7 +197,7 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
 
     if linearize:
         sol = BlockFunction(H)
-        AA = block_assemble(lhs, keep_diagonal=False)
+        AA = block_assemble(lhs, keep_diagonal=True)
         bcs.apply(AA)
         solver = PETScLUSolver(AA, "mumps")
         
@@ -205,10 +207,11 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
 
         output.parameters["rewrite_function_mesh"] = False
         output.parameters["functions_share_mesh"] = True   
-        output.parameters["flush_output"] = True    
+        output.parameters["flush_output"] = True
  
-        output_checkp.parameters["functions_share_mesh"] = True
-        output_checkp.parameters["rewrite_function_mesh"] = False
+        #output_checkp.parameters["functions_share_mesh"] = True
+        #output_checkp.parameters["rewrite_function_mesh"] = False
+        #output_checkp.write_checkpoint(subdomain_marker, "subdomains")
 
     names = ["velocity u", "fluid pressure pF", "displacement d",
             "fluid pressure in porous domain pP", "total pressure phi"]
@@ -223,12 +226,39 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
         sol.block_vector().block_function().apply("to subfunctions")
         block_assign(previous, sol)
 
+    class BiotNSBlockNonLinearProblem(BlockNonlinearProblem):
+        def __init__(self, block_solution):
+            NonlinearProblem.__init__(self)
+            rhs = [F_F_n(v), 0, F_P_n(w), G_n(qP), 0]
+            F = np.array(lhs).sum(axis=1) - np.array(rhs)
+            J = block_derivative(F, trial, dtrial)
+            self.residual_block_form = F
+            self.jacobian_block_form = J
+            self.block_solution = block_solution
+            self.bcs = bcs
+            # Create block backend for wrapping
+            self.block_backend = BlockDefaultFactory()
+            self.block_dof_map = self.block_solution.block_function_space().block_dofmap()
+            # precompute linear part of jacobian
+            # self.precomp_jacobian = block_assemble(J, keep_diagonal=self.bcs is not None)
+
+        def J(self, fenics_jacobian, _):
+            # No need to update block solution subfunctions, this has already been done in the residual
+            # Wrap FEniCS jacobian into a block jacobian
+            block_jacobian = self.block_backend.wrap_matrix(fenics_jacobian)
+            # Assemble the block jacobian
+            block_assemble(self.jacobian_block_form, block_tensor=block_jacobian, keep_diagonal=self.bcs is not None)
+            # Apply boundary conditions
+            if self.bcs is not None:
+                self.bcs.apply(block_jacobian)
+
 
     def solve_nonlinear():
-        rhs = [F_F_n(v), 0, F_P_n(w), G_n(qP), 0]
-        F = np.array(lhs).sum(axis=1) - np.array(rhs)
-        J = block_derivative(F, trial, dtrial)
-        problem = BlockNonlinearProblem(F, trial, bcs, J)
+        #rhs = [F_F_n(v), 0, F_P_n(w), G_n(qP), 0]
+        #F = np.array(lhs).sum(axis=1) - np.array(rhs)
+        #J = block_derivative(F, trial, dtrial)
+        #problem = BlockNonLinearProblem(F, trial, bcs, J)
+        problem = BiotNSBlockNonLinearProblem(trial)
         solver = BlockPETScSNESSolver(problem)
         solver.parameters.update(snes_solver_parameters["snes_solver"])
         solver.solve()
@@ -256,23 +286,18 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
             ALE.move(mesh, d_hat)
 
         if filename:
-            fluid_mesh = SubMesh(mesh, subdomain_marker, fluid_id)
-            por_mesh = SubMesh(mesh, subdomain_marker, porous_id)
-
-
             for k,r in enumerate(results):
+                append = i>0 or k>0
                 r.rename(names[k], names[k])
-                if k==4:
-                    Vsub = FunctionSpace(por_mesh,"CG", 1)
-
-                    output.write(interpolate(r, Vsub), time)
+                
+                output.write(r, time)
                 
                 if isinstance(r.ufl_element(), VectorElement) and elem_type=="mini":
                     
                     V = VectorFunctionSpace(mesh, "CG", 1)
-                    output_checkp.write_checkpoint(interpolate(r, V), r.name(), time, append=True)
+                    output_checkp.write_checkpoint(interpolate(r, V), r.name(), time, append=append)
                 else:
-                    output_checkp.write_checkpoint(r, r.name(), time, append=True)
+                    output_checkp.write_checkpoint(r, r.name(), time, append=append)
 
 
     if filename:

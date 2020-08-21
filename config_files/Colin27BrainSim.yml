@@ -19,4 +19,6 @@ source_data:
   f : 1.0
   scale_by_total_vol : True
 sliprate : 0.0
+element_type : mini
+
 

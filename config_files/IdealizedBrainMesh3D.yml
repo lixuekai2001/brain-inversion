@@ -1,6 +1,6 @@
 # config file for 3D idealized brain mesh generation
 dim : 3
-N : 50 
+N : 80 
 brain_radius : 0.1
 fluid_radius : 0.12
 ventricle_radius :  0.03

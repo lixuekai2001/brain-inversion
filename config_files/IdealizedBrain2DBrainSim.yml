@@ -1,15 +1,15 @@
-# Config file for coupled Fluid Porous Interaction Brain Sim (all units SI)
-mesh_dir_name : ideal_brain_3D_N50
+# Config file for coupled Fluid-Porous Interaction Brain Simulation (all units SI)
+mesh_dir_name : ideal_brain_2D_N100
 num_threads : 2
 log_level : 16
 T : 2.0
-num_steps : 50
+num_steps : 20
 material_parameter:
   E : 1500 # Young modulus
   nu : 0.479 # Poisson ratio
   rho_s : 1000
   alpha : 1
-  kappa : 1.0e-17
+  kappa : 1.0e-12
   c : 1.0e-7
   rho_f : 1.0e+3
   mu_f : 1.0e-3
@@ -22,7 +22,7 @@ source_data:
   scale_by_total_vol : True
   scaling : 1.0e-9 ## mm^3 to m^3
 sliprate : 0.0
-linearize : True
-element_type : mini
+linearize : False
+element_type : TH
 
 

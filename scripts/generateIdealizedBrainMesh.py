@@ -27,7 +27,7 @@ def generate3DIdealizedBrainMesh(config):
     canal_length = config["canal_length"] 
     
     path = f"../meshes/ideal_brain_3D_N{N}/ideal_brain_3D_N{N}"
-
+    os.popen(f'mkdir -p {path}') 
     h = 1.0/N
     geom = pygmsh.opencascade.Geometry(
             characteristic_length_min=h,
@@ -96,7 +96,8 @@ def generate2DIdealizedBrainMesh(config):
     canal_length = config["canal_length"] # 0.2
     
     path = f"../meshes/ideal_brain_2D_N{N}/ideal_brain_2D_N{N}"
-   
+    os.popen(f'mkdir -p {path}') 
+
     brain = Circle(Point(0,0), brain_radius)
     ventricle = Circle(Point(0,0), ventricle_radius)
     aqueduct = Rectangle(Point(-aqueduct_width/2, -brain_radius), Point(aqueduct_width/2, 0))
@@ -122,6 +123,7 @@ def generate2DIdealizedBrainMesh(config):
     porous_restr = generate_subdomain_restriction(mesh, subdomains, porous_id)
     fluid_restr._write(path + "_fluid.rtc.xdmf")
     porous_restr._write(path + "_porous.rtc.xdmf")
+    return path
  
 
 if __name__=="__main__":

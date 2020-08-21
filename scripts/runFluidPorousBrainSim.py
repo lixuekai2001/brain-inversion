@@ -111,6 +111,7 @@ def runFluidPorousBrainSim(config):
                                     sliprate=sliprate,
                                     g_source=g_source,
                                     filename=outfile,
+                                    elem_type=config["element_type"],
                                     linearize=config["linearize"],
                                     move_mesh=False,
                                     time_dep_expr=[g_source])
