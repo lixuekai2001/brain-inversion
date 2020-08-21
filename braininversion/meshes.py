@@ -68,7 +68,7 @@ def jmesh_to_vtk(infile, outfile, infile_dict, outfile_dict, reduce=False, scali
     grid.cell_arrays["subdomains"] = subdomains.flatten()
     if reduce:
         grid = grid.threshold(5, scalars="subdomains", invert=True)
-    grid.save(outfile)
+    pv.save_meshio(outfile, grid)
 
 
 def generate_subdomain_restriction(mesh, subdomains, subdomain_id):
