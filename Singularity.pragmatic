@@ -1,0 +1,12 @@
+Bootstrap: docker
+From: quay.io/fenicsproject/stable:2018.1.0
+
+%post
+    apt-get -q -y install libmetis-dev
+    git clone https://github.com/meshadaptation/pragmatic.git
+    cd pragmatic
+    mkdir build
+    cd build
+    cmake ..
+    make
+    make install

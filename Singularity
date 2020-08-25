@@ -1,5 +1,7 @@
-Bootstrap: docker
-From: multiphenics/multiphenics
+#Bootstrap: docker
+Bootstrap: docker-daemon
+#From: multiphenics/multiphenics
+From: fenics/hybrid_mumps:latest
 
 %environment
     PYTHONPATH=/usr/local/lib/python3/dist-packages/gmsh-4.6.0-Linux64-sdk/lib/
