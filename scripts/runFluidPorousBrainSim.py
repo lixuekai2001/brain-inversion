@@ -13,8 +13,9 @@ parameters['ghost_mode'] = 'shared_facet'
 def runFluidPorousBrainSim(config):
     set_log_level(config["log_level"])
     num_threads = config["num_threads"]
-    os.environ["OMP_NUM_THREADS"] = str(num_threads)
-
+    if num_threads!="default":
+        PETScOptions.set("mat_mumps_use_omp_threads", num_threads)
+        
     #PETScOptions.set("snes_lag_jacobian",1) #use -1 to never recompute
 
     # set parameter
@@ -55,6 +56,7 @@ def runFluidPorousBrainSim(config):
     mesh = Mesh()
     infile.read(mesh)
     gdim = mesh.geometric_dimension()
+    #mesh.smooth(50)
     subdomains = MeshFunction("size_t", mesh, gdim, 0)
     infile.read(subdomains)
     infile.close()
