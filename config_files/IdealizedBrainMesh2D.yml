@@ -1,8 +1,8 @@
 # config file for 2D idealized brain mesh generation
 dim : 2
-N : 100 
+N : 20 
 brain_radius : 0.1
-fluid_radius : 0.12
+sas_radius : 0.12
 ventricle_radius :  0.03
 aqueduct_width : 0.005
 canal_width : 0.02

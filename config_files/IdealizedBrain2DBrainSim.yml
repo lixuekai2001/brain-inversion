@@ -1,5 +1,5 @@
 # Config file for coupled Fluid-Porous Interaction Brain Simulation (all units SI)
-mesh_dir_name : ideal_brain_2D_N100
+mesh_dir_name : ideal_brain_2D_N20
 num_threads : 2
 log_level : 16
 T : 2.0
@@ -21,8 +21,8 @@ source_data:
     f : 1.0
   scale_by_total_vol : True
   scaling : 1.0e-9 ## mm^3 to m^3
-sliprate : 0.0
-linearize : False
+sliprate : 0.5
+linearize : True
 element_type : TH
 
 
