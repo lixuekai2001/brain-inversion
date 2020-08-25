@@ -2,6 +2,7 @@ from dolfin import *
 from multiphenics import *
 import os
 import ufl
+from ufl import Max
 import numpy as np
 from pathlib import Path
 from multiphenics.la import BlockDefaultFactory
@@ -68,6 +69,16 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
 
     n = FacetNormal(mesh)("+")
 
+    # compute tangential vectors by hausdorfer formula
+    #h1 = Max(n[0] - 1, n[0] +1)
+    #h2 = n[1]
+    #h3 = n[2]
+    #h = as_vector([h1,h2,h3])
+    #ha = sqrt(inner(h,h))
+    #tau1 = as_vector([-2*h1*h2/ha**2, 1 - 2*h2**2/ha**2, -2*h2*h3/ha**2])
+    #tau2 = as_vector([-2*h1*h3/ha**2, - 2*h2*h3/ha**2, 1-2*h3**2/ha**2])
+
+
     dxF = Measure("dx", domain=mesh, subdomain_data=subdomain_marker, subdomain_id=fluid_id)
     dxP = Measure("dx", domain=mesh, subdomain_data=subdomain_marker, subdomain_id=porous_id)
     dxD = Measure("dx", domain=mesh, subdomain_data=subdomain_marker)
@@ -75,7 +86,7 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
     ds = Measure("ds", domain=mesh, subdomain_data=boundary_marker)
 
     ds_Sig = dS(interf_id)
-
+    
     fluidrestriction = MeshRestriction(mesh, fluid_restriction_file)
     porousrestriction = MeshRestriction(mesh, porous_restriction_file)
     if elem_type=="TH":
@@ -117,12 +128,17 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
 
     def proj_t(vec):
         return vec-dot(vec,n)*n
+                    
+    def tang_interf(u,v):
+        #return (dot(u("+"), tau1) + dot(u("+"), tau2))*(dot(v("+"), tau1) + dot(v("+"), tau2))*ds_Sig 
+        #return dot(u("+"), tau1)*dot(v("+"), tau1)*ds_Sig + dot(u("+"), tau2)*dot(v("+"), tau2)*ds_Sig + inner(u,v)*Constant(0.0)*dxD
+        return inner(proj_t(u("+")), proj_t(v("+")))*ds_Sig + inner(u,v)*Constant(0.0)*dxD
 
     # define forms
     def a_F(u,v):
         return rho_f*dot(u/dt, v)*dxF \
                 + 2*mu_f*inner(eps(u), eps(v))*dxF \
-                + (gamma*mu_f/sqrt(kappa))*inner(proj_t(u("+")), proj_t(v("+")))*ds_Sig
+                + (gamma*mu_f/sqrt(kappa))*tang_interf(u,v)
 
     if linearize:
         def c_F(u,v):
@@ -138,15 +154,14 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
         return qP("+")*inner(v("+"), n)*ds_Sig + div(v)*qP*Constant(0.0)*dxD
 
     def b_3_Sig(v, d):
-        return - ((gamma*mu_f/sqrt(kappa))*inner(proj_t(v("+")), proj_t(d("+")))*ds_Sig)
-
+        return - ((gamma*mu_f/sqrt(kappa))*tang_interf(v, d))
 
     def b_4_Sig(w,qP):
         return -qP("+") * dot(w("+"),n)*ds_Sig + div(w)*qP*Constant(0.0)*dxD
 
     def a_1_P(d, w):
         return 2.0*mu_s*inner(eps(d), eps(w))*dxP \
-                + (gamma*mu_f/sqrt(kappa))*inner(proj_t(d("+")/dt), proj_t(w("+")))*ds_Sig
+                + (gamma*mu_f/sqrt(kappa))*tang_interf(d/dt,w)
 
 
     def b_1_P(w, psi):
@@ -177,7 +192,7 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
         return F_F(v) + rho_f*inner(u_n/dt, v)*dxF + b_3_Sig(v, d_n/dt)
 
     def F_P_n(w):
-        return F_P(w) + (gamma*mu_f/sqrt(kappa))*inner(proj_t(d_n("+")/dt), proj_t(w("+")))*ds_Sig
+        return F_P(w) + (gamma*mu_f/sqrt(kappa))*tang_interf(d_n/dt, w)
 
     def G_n(qP):
         return G(qP) + (c + (alpha**2)/lmbda)*pP_n/dt*qP*dxP \
