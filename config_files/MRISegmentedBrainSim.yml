@@ -1,9 +1,9 @@
-# Config file for coupled Fluid Porous Interaction Brain Sim (all units SI)
-mesh_dir_name : ideal_brain_3D_N80
+# Config file for coupled Fluid Porous Interaction Brain Sim
+mesh_dir_name : slicerMRIExampleSegmentation_N15.0
 num_threads : default
 log_level : 16
-T : 2.0
-num_steps : 40
+T : 1.0
+num_steps : 20
 material_parameter:
   E : 1500 # Young modulus
   nu : 0.479 # Poisson ratio
@@ -24,5 +24,3 @@ source_data:
 sliprate : 1.0
 linearize : True
 element_type : TH
-
-

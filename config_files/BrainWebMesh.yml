@@ -1,0 +1,7 @@
+# Config File for Colins 27 mesh conversion
+path : "../BrainMeshLibrary/BrainWeb/BrainWeb_Subject04.jmsh"
+scaling : 0.001 # mm to m
+extract_subd : True
+add_spinal_outlet : False
+spinal_outlet_radius : 0.008
+spinal_outlet_midpoint : [0.088, 0.088, 0.006]

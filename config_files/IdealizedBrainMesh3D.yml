@@ -11,6 +11,3 @@ from_volumes :
 aqueduct_width : 0.002 # radius
 canal_width : 0.008 # radius
 canal_length : 0.1
-ventricle_probe : [0, 0, 0]
-sas_probe : [0.11, 0.0, 0.0 ]
-parenchyma_probe : [0.05,0.0, 0.0]
