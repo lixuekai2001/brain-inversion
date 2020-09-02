@@ -15,7 +15,7 @@ def runFluidPorousBrainSim(config):
     num_threads = config["num_threads"]
     if num_threads!="default":
         PETScOptions.set("mat_mumps_use_omp_threads", num_threads)
-        
+    PETScOptions.set("mat_mumps_icntl_4", 2) # set mumps verbosity (0-4)
     #PETScOptions.set("snes_lag_jacobian",1) #use -1 to never recompute
 
     # set parameter
@@ -65,17 +65,39 @@ def runFluidPorousBrainSim(config):
     boundaries =  MeshFunction("size_t", mesh, gdim - 1, 0)
     infile.read(boundaries)
 
+    mmHg2Pa = 132
+    m3tomL = 1e6
+    initial_pressure = 0
     # define boundary conditions
+    spinal_pressure = Expression("P0*exp(k*outflow_vol)",
+                                P0 = initial_pressure, k = 5e3,
+                                outflow_vol=0.0, degree=2)
 
+    spinal_pressure = Expression("P0",#"P0 + outflow_vol*b",
+                                 P0 = initial_pressure, b=2*mmHg2Pa*m3tomL,
+                                 outflow_vol=0.0, degree=2)
+
+    #spinal_pressure = Expression("100*sin(2*pi*t)", t=0.0, degree=2)
     boundary_conditions = [
         {rigid_skull_id: {0:Constant([0.0]*gdim)}},
-        #{fixed_stem_id: {2:Constant([0.0]*gdim)}},
+        {fixed_stem_id: {2:Constant([0.0]*gdim)}},
         ]
 
     source_conf = config["source_data"]
     if "source_expression" in source_conf.keys():
-        g_source = Expression(source_conf["source_expression"],
-                        t=0.0,degree=2,**source_conf["source_params"])
+        if source_conf["scale_by_total_vol"]:
+            dx = Measure("dx", domain=mesh, subdomain_data=subdomains)
+            tot_parenchyma_vol = assemble(1.0*dx(porous_id))
+            fluid_vol = assemble(1.0*dx(fluid_id))
+            vol_scal=1.0/tot_parenchyma_vol
+            print(f"total volume of brain tissue: {tot_parenchyma_vol}")
+            print(f"total volume of CSF: {fluid_vol}")
+        else:
+            vol_scal = 1
+        g_source = Expression("vol_scal*" + source_conf["source_expression"],
+                        t=0.0,degree=2, vol_scal=vol_scal,
+                        **source_conf["source_params"])
+                        
     elif "source_file" in source_conf.keys():
         #g_source = InterpolatedSource(source_conf["source_file"])
         data = np.loadtxt(source_conf["source_file"], delimiter=",")
@@ -102,21 +124,23 @@ def runFluidPorousBrainSim(config):
         i = len(times) - 1
         g_source.i = i
         assert g_source(Point(0, 0, 0)) == values[i]
-
-    results = solve_biot_navier_stokes(mesh, T, num_steps,
-                                    material_parameter, 
-                                    boundaries,
-                                    subdomains,
-                                    boundary_conditions,
-                                    porous_restriction_file,
-                                    fluid_restriction_file,
-                                    sliprate=sliprate,
-                                    g_source=g_source,
-                                    filename=outfile,
-                                    elem_type=config["element_type"],
-                                    linearize=config["linearize"],
-                                    move_mesh=False,
-                                    time_dep_expr=[g_source])
+    #g_source = Expression("0.0", degree=2, t=0.0)
+    solve_biot_navier_stokes(mesh, T, num_steps,
+                            material_parameter, 
+                            boundaries,
+                            subdomains,
+                            boundary_conditions,
+                            porous_restriction_file,
+                            fluid_restriction_file,
+                            sliprate=sliprate,
+                            g_source=g_source,
+                            outlet_pressure=spinal_pressure,
+                            initial_pressure=initial_pressure,
+                            filename=outfile,
+                            elem_type=config["element_type"],
+                            linearize=config["linearize"],
+                            move_mesh=False,
+                            time_dep_expr=[g_source, spinal_pressure])
 
     return f"../results/{mesh_name}_{T}_{num_steps}/{mesh_name}_{T}_{num_steps}"
 
