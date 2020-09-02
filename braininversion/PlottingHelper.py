@@ -104,9 +104,9 @@ def plot_pressures_and_forces_timeslice(pressures, forces, point_idx, times):
     plt.legend(loc="upper center")
 
 
-def extract_cross_section(function, points, times=None):
+def extract_cross_section(function, points, times=None, filter_function=None):
     if isinstance(function, list):
-        return extract_cross_section_from_list(function, points)
+        return extract_cross_section_from_list(function, points, filter_function=filter_function)
     if isinstance(function, Expression):
         if times is None:
             raise ValueError("times must be specified for expression cross section")
@@ -114,17 +114,20 @@ def extract_cross_section(function, points, times=None):
                                                      points, times)
  
 
-def extract_cross_section_from_list(functions, points):
+def extract_cross_section_from_list(functions, points,filter_function=None):
     npoints = len(points)
     nt = len(functions)
     value_dim = functions[0].value_dimension(0)
     values = np.ndarray((nt, npoints, value_dim))
+    if filter_function is None:
+        filter_function = Expression("1", degree=0)
     for k, p in enumerate(points):
         for i,f in enumerate(functions):
             try:
-                values[i, k, :] = f(p) 
+                values[i, k, :] = f(p)
             except RuntimeError:
                 values[i, k, :] = np.repeat(np.nan, value_dim)
+            values[i, k, :] = values[i, k, :]*filter_function(p)
     return values
 
 def extract_cross_section_from_expression(expression, points, times):

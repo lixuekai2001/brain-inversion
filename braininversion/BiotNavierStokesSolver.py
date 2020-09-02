@@ -7,7 +7,6 @@ import numpy as np
 from pathlib import Path
 from multiphenics.la import BlockDefaultFactory
 
-
 #from tqdm import tqdm
 
 parameters["form_compiler"]["optimize"] = True
@@ -36,7 +35,9 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
                              time_dep_expr=(),
                              elem_type="mini",
                              sliprate=0.0,
+                             initial_pressure=0.0,
                              g_source=Constant(0.0),
+                             outlet_pressure=Constant(0.0),
                              move_mesh=False,
                              filename=None,
                              linearize=False,
@@ -47,6 +48,8 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
     gdim = mesh.geometric_dimension()
     fluid_id = 2
     porous_id = 1
+    spinal_outlet_id = 3
+
 
     # porous parameter
     c = material_parameter["c"]
@@ -114,6 +117,14 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
     previous = BlockFunction(H)
     u_n, pF_n, d_n, pP_n, phi_n = block_split(previous)
 
+    #u_n.assign(interpolate(Constant([0.0]*gdim), H.sub(0)))
+    pF_n.assign(interpolate(Constant(initial_pressure), H.sub(1)))
+    #d_n.assign(interpolate(Constant([0.0]*gdim), H.sub(2)))
+    pP_n.assign(interpolate(Constant(initial_pressure), H.sub(3)))
+    phi_n.assign(interpolate(Constant(initial_pressure), H.sub(4)))
+    #pF_n.vector()[:] = initial_pressure
+
+    previous.apply("from subfunctions")
 
     # extract Dirichlet boundary conditions
     bcs = []
@@ -178,7 +189,7 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
         return (1.0/lmbda)*phi*psi*dxP
 
     def F_F(v):
-        return rho_f *dot(g, v)*dxF
+        return rho_f *dot(g, v)*dxF - dot(outlet_pressure*FacetNormal(mesh), v)*ds(spinal_outlet_id)
 
     def F_P(w):
         return rho_s*inner(f, w)*dxP
@@ -224,8 +235,8 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
         output.parameters["functions_share_mesh"] = True   
         output.parameters["flush_output"] = True
  
-        #output_checkp.parameters["functions_share_mesh"] = True
-        #output_checkp.parameters["rewrite_function_mesh"] = False
+        output_checkp.parameters["functions_share_mesh"] = True
+        output_checkp.parameters["rewrite_function_mesh"] = False
         #output_checkp.write_checkpoint(subdomain_marker, "subdomains")
 
     names = ["velocity u", "fluid pressure pF", "displacement d",
@@ -237,9 +248,11 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
         rhs = [F_F_n(v), 0, F_P_n(w), G_n(qP), 0]
         FF = block_assemble(rhs)
         bcs.apply(FF)
-        solver.solve(sol.block_vector(), FF)
-        sol.block_vector().block_function().apply("to subfunctions")
-        block_assign(previous, sol)
+        solver.solve(previous.block_vector(), FF)
+        previous.block_vector().block_function().apply("to subfunctions")
+        #solver.solve(sol.block_vector(), FF)
+        #sol.block_vector().block_function().apply("to subfunctions")
+        #block_assign(previous, sol)
 
     class BiotNSBlockNonLinearProblem(BlockNonlinearProblem):
         def __init__(self, block_solution):
@@ -279,18 +292,22 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
         solver.solve()
         block_assign(previous, trial)
 
+    results = block_split(previous)
+    write_to_file(results, time, names, output_checkp,elem_type)
+    outflow = 0.0
     for i in range(num_steps):
         time = (i + 1)*dt.values()[0]
         for expr in time_dep_expr:
             expr.t = time
             expr.i = i
+            expr.outflow_vol = outflow
+                
         if linearize:
             solve_linearized()
         else:
             solve_nonlinear()
-        
+
         results = block_split(previous)
-        #[r.rename(names[i], names[i]) for i,r in enumerate(results)]
 
         if move_mesh:
             d =  results[2]
@@ -299,35 +316,28 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
             
             ALE.move(mesh, d)
             ALE.move(mesh, d_hat)
+        
+        write_to_file(results, time, names, output_checkp,elem_type)
 
-        if filename:
-            for k,r in enumerate(results):
-                append = i>0 or k>0
-                r.rename(names[k], names[k])
-                
-                output.write(r, time)
-                
-                if isinstance(r.ufl_element(), VectorElement) and elem_type=="mini":
-                    
-                    V = VectorFunctionSpace(mesh, "CG", 1)
-                    output_checkp.write_checkpoint(interpolate(r, V), r.name(), time, append=append)
-                else:
-                    output_checkp.write_checkpoint(r, r.name(), time, append=append)
-
-
-    if filename:
-        output.close()
-        output_checkp.close()
-        path = Path(filename + ".xdmf")
-        text = path.read_text()
-        text = text.replace(",", ".")
-        path.write_text(text)
-        path = Path(filename + "_checkp.xdmf")
-        text = path.read_text()
-        text = text.replace(",", ".")
-        path.write_text(text)
-
+        u = results[0]
+        outflow += assemble(inner(u,FacetNormal(mesh))*dt*ds(spinal_outlet_id))
     return results
+
+
+def write_to_file(results, time, names, output_checkp,elem_type):
+    for k,r in enumerate(results):
+        if np.isclose(time, 0.0) and k==0:
+            append = False
+        else:
+            append = True
+        r.rename(names[k], names[k])
+            
+        if isinstance(r.ufl_element(), VectorElement) and elem_type=="mini":
+            
+            V = VectorFunctionSpace(mesh, "CG", 1)
+            output_checkp.write_checkpoint(interpolate(r, V), r.name(), time, append=append)
+        else:
+            output_checkp.write_checkpoint(r, r.name(), time, append=append)
 
 
 def harmonic_extension(mesh, d, boundary_marker, fluidrestriction, dxF, interface_id):

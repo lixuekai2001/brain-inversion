@@ -15,6 +15,14 @@ interface_id = 1
 rigid_skull_id = 2
 spinal_outlet_id = 3
 
+def write_mesh_per_subdomain(path, subdomains, mesh):
+        f = XDMFFile( path + "_fluid.xdmf")
+        f.write(SubMesh(mesh, subdomains, fluid_id))
+        f.close()
+        f = XDMFFile( path + "_porous.xdmf")
+        f.write(SubMesh(mesh, subdomains, porous_id))
+        f.close()
+
 def generate3DIdealizedBrainMesh(config):
 
     import pygmsh
@@ -62,7 +70,10 @@ def generate_boundaries(path, canal_length):
     infile.read(mesh)
     gdim = mesh.geometric_dimension()
     subdomains = MeshFunction("size_t", mesh, gdim, 0)
+
     infile.read(subdomains, "subdomains")
+    write_mesh_per_subdomain(path, subdomains, mesh)
+
     boundaries = MeshFunction("size_t", mesh, gdim - 1, 0)
             
     # set rigid skull boundary
@@ -144,6 +155,13 @@ def compute_geometry(config):
                                                          vols["sas_volume"])
     else:
         raise KeyError("specify either volumes or radii!")
+    gdim = config["dim"]
+    sas_r = config["sas_radius"]
+    brain_r = config["brain_radius"]
+    ventr_r = config["ventricle_radius"]
+    config["ventricle_probe"] = [0]*gdim
+    config["sas_probe"] = [0.5*(brain_r + sas_r)] + [0]*(gdim -1)
+    config["parenchyma_probe"] = [0.5*(brain_r + ventr_r)] + [0]*(gdim -1)
     return config
     
 
@@ -163,4 +181,5 @@ if __name__=="__main__":
     elif config["dim"] == 2:
         target_folder = generate2DIdealizedBrainMesh(config)
     with open(f"{target_folder}_config.yml", 'w') as conf_outfile:
-        yaml.dump(config, conf_outfile, default_flow_style=False)
+        yaml.dump(config, conf_outfile, default_flow_style=None)
+

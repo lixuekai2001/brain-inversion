@@ -10,6 +10,14 @@ import yaml
 import argparse
 import os
 
+def write_mesh_per_subdomain(path, subdomains, mesh):
+        f = XDMFFile( path + "_fluid.xdmf")
+        f.write(SubMesh(mesh, subdomains, fluid_id))
+        f.close()
+        f = XDMFFile( path + "_porous.xdmf")
+        f.write(SubMesh(mesh, subdomains, porous_id))
+        f.close()
+
 
 def convert_mesh(config):
     # set parameter
@@ -63,6 +71,9 @@ def convert_mesh(config):
 
     subdomains = MeshFunction("size_t", mesh, 3, 0)
     file.read(subdomains, "subdomains")
+
+    write_mesh_per_subdomain(outfile, subdomains, mesh)
+
     boundaries = MeshFunction("size_t", mesh, 2, 0)
     z_bottom = mesh.coordinates()[:,2].min()
 

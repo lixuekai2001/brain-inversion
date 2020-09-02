@@ -74,10 +74,8 @@ def xdmf_to_unstructuredGrid(filename, idx=None, variables=None):
     n = cells[0].data.shape[0] # number of cells
     p = cells[0].data.shape[1] # number of points per cell
     c = cells[0].data
-    if p==3:
-        cell_type = vtk.VTK_TRIANGLE
-    elif p==5:
-        cell_type = vtk.VTK_TETRA
+    
+    cell_type = vtk.VTK_TETRA
 
     c = np.insert(c, 0, p, axis=1) # insert number of points per cell at begin of cell row
     print(f"{n} cells with {p} points per cell detected")

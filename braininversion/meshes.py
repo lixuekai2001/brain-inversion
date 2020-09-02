@@ -100,12 +100,14 @@ def extract_internal_interface(mesh,subdomains, boundaries, interface_id):
         if len(domains) > 1:
             boundaries[f] = interface_id
 
-def set_external_boundaries(mesh, subdomains, boundaries, subdomain_id, boundary_id, midpoint_criterion):
+def set_external_boundaries(mesh, subdomains, boundaries, subdomain_id, boundary_id, criterion=None):
+    if criterion is None:
+        criterion = lambda x: True
     for f in facets(mesh):
         domains = []
         for c in cells(f):
             domains.append(subdomains[c])
         domains = list(set(domains))
         if f.exterior() and len(domains) == 1:
-            if domains[0] == subdomain_id and midpoint_criterion(f.midpoint().array()):
+            if domains[0] == subdomain_id and criterion(f.midpoint().array()):
                 boundaries[f] = boundary_id
