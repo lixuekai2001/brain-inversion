@@ -224,17 +224,13 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
     if linearize:
         sol = BlockFunction(H)
         AA = block_assemble(lhs, keep_diagonal=True)
-        bcs.apply(AA)
         solver = PETScLUSolver(AA, "mumps")
+        solver.parameters["symmetric"] = True
+
         
     if filename:
-        output = XDMFFile(filename + ".xdmf")
-        output_checkp = XDMFFile(filename + "_checkp.xdmf")
+        output_checkp = XDMFFile(filename)
 
-        output.parameters["rewrite_function_mesh"] = False
-        output.parameters["functions_share_mesh"] = True   
-        output.parameters["flush_output"] = True
- 
         output_checkp.parameters["functions_share_mesh"] = True
         output_checkp.parameters["rewrite_function_mesh"] = False
         #output_checkp.write_checkpoint(subdomain_marker, "subdomains")
@@ -321,6 +317,7 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
 
         u = results[0]
         outflow += assemble(inner(u,FacetNormal(mesh))*dt*ds(spinal_outlet_id))
+    output_checkp.close()
     return results
 
 

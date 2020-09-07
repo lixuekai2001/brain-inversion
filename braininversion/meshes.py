@@ -1,6 +1,6 @@
 from fenics import * 
 from multiphenics import *
-from mshr import *
+#from mshr import *
 import jdata as jd
 import numpy as np
 import scipy.io
