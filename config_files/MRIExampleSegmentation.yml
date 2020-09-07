@@ -1,0 +1,18 @@
+ventricle_components: 
+  {"median_aperture":{"grow":0.2, "smooth":100, "id":3},
+  "third_ventricle":{"grow":0.1, "smooth":500, "id":4},
+  "aqueduct":{"grow":0.2, "smooth":100, "id":5},
+  "foramina":{"grow":0.2, "smooth":20, "id":6},
+  "lateral_ventricles":{"grow":0.0, "smooth":50, "id":7},
+  "fourth_ventricle":{"grow":2, "smooth":2000, "id":8}
+  }
+directory : "brainMeshBaseFiles/MRIExampleSegmentation"
+cell_size : 4.0 # in mm
+edge_size : 4.0
+facet_size : 1.8
+facet_angle : 30.0
+facet_distance : 0.2
+cell_radius_edge_ratio : 2.0
+scaling : 1.0e-3 # mm to m
+odt : False
+exude : False
