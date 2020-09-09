@@ -9,8 +9,8 @@ from snakemake.utils import read_job_properties
 import slurm_utils
 
 # cookiecutter arguments
-SBATCH_DEFAULTS = """3"""
-CLUSTER_CONFIG = ""
+SBATCH_DEFAULTS = """"""
+CLUSTER_CONFIG = "cluster_config.yaml"
 ADVANCED_ARGUMENT_CONVERSION = {"yes": True, "no": False}["no"]
 
 RESOURCE_MAPPING = {

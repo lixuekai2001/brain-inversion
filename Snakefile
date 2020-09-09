@@ -43,11 +43,11 @@ rule runBrainSim:
     log:
         "results/{mesh}_{sim_name}/log"
     resources:
-        mem_mb=lambda wildcards, input: int(max(0.2e4*input.size_mb, 1000)),
-        ncpus=lambda wildcards, input: 4 if input.size_mb < 1000 else 40
+        mem_mb=100000 ,  #lambda wildcards, input: int(max(0.2e4*input.size_mb, 1000)),
+        cpus=20        #lambda wildcards, input: 4 if input.size_mb < 1000 else 40
     shell:
         """
-        singularity exec {params.sing_image} mpirun -n {resources.ncpus} \
+        singularity exec {params.sing_image} mpirun -n {resources.cpus} \
         python3 scripts/runFluidPorousBrainSim.py \
         -c {input.config} \
         -m {input.meshfile} \

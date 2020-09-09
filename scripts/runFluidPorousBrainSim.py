@@ -25,7 +25,7 @@ def runFluidPorousBrainSim(config_file_path, mesh_file_path, outfile_path):
     #PETScOptions.set("mat_mumps_icntl_13", 4) # set scalapack use
     PETScOptions.set("mat_mumps_icntl_4", 3) # set mumps verbosity (0-4)
     #PETScOptions.set("mat_mumps_icntl_7", 3) # set mumps ordering
-    PETScOptions.set("mat_mumps_icntl_22", 1) # use out of core
+    #PETScOptions.set("mat_mumps_icntl_22", 1) # use out of core
     #PETScOptions.set("mat_mumps_icntl_28", 1) # use 1 for sequential analysis and ictnl(7) ordering, or 2 for parallel analysis and ictnl(29) ordering
     #PETScOptions.set("mat_mumps_icntl_29", 1) # parallel ordering 1 = ptscotch, 2 = parmetis
     #PETScOptions.set("mat_mumps_icntl_35", 1) # set use of BLR (Block Low-Rank) feature (0:off, 1:optimal)
