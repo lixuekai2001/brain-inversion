@@ -87,7 +87,7 @@ def convert_mesh(config):
 
 
     # set internal interface
-    extract_internal_interface(mesh,subdomains, boundaries, interface_id)
+    extract_internal_interface(mesh,subdomains, boundaries, interface_id=interface_id)
 
     # add further external boundaries
     if add_spinal_outlet:

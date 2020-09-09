@@ -9,7 +9,7 @@ From: fenics/openmp:latest
 
 %post
     chmod -R 777 var/*
-    #apt-get -q update && 
-    #apt-get install -q -y libgl1-mesa-dev libglu1-mesa-dev libxcursor-dev libxinerama-dev python3-h5py
-    #apt-get clean
+    apt-get -q update && 
+    apt-get install -q -y libgl1-mesa-dev libglu1-mesa-dev libxcursor-dev libxinerama-dev python3-h5py
+    apt-get clean
     pip3 -q install --upgrade --no-cache-dir pip meshio==4.0.13 jdata pyvista gmsh pygmsh pyyaml

@@ -230,9 +230,12 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
         
     if filename:
         output_checkp = XDMFFile(filename)
+        output_legacy = XDMFFile(f"{Path(filename).parent}/{Path(filename).stem}_old.xdmf" )
 
         output_checkp.parameters["functions_share_mesh"] = True
         output_checkp.parameters["rewrite_function_mesh"] = False
+        output_legacy.parameters["functions_share_mesh"] = True
+        output_legacy.parameters["rewrite_function_mesh"] = False
         #output_checkp.write_checkpoint(subdomain_marker, "subdomains")
 
     names = ["velocity u", "fluid pressure pF", "displacement d",
@@ -289,7 +292,7 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
         block_assign(previous, trial)
 
     results = block_split(previous)
-    write_to_file(results, time, names, output_checkp,elem_type)
+    write_to_file(results, time, names, output_checkp, output_legacy, elem_type)
     outflow = 0.0
     for i in range(num_steps):
         time = (i + 1)*dt.values()[0]
@@ -313,21 +316,26 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
             ALE.move(mesh, d)
             ALE.move(mesh, d_hat)
         
-        write_to_file(results, time, names, output_checkp,elem_type)
+        write_to_file(results, time, names, output_checkp,
+                      output_legacy, elem_type)
+        
 
         u = results[0]
         outflow += assemble(inner(u,FacetNormal(mesh))*dt*ds(spinal_outlet_id))
     output_checkp.close()
+    output_legacy.close()
     return results
 
 
-def write_to_file(results, time, names, output_checkp,elem_type):
+def write_to_file(results, time, names, output_checkp, output_legacy, elem_type):
     for k,r in enumerate(results):
         if np.isclose(time, 0.0) and k==0:
             append = False
         else:
             append = True
         r.rename(names[k], names[k])
+
+        output_legacy.write(r, time)
             
         if isinstance(r.ufl_element(), VectorElement) and elem_type=="mini":
             

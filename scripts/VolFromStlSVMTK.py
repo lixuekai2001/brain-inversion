@@ -7,6 +7,9 @@ from itertools import combinations
 import yaml
 from pathlib import Path
 
+base_components = ["csf", "parenchyma"]
+tmp_file = '/tmp/brain.mesh'
+
 
 def mesh_from_surfaces(config, outfile):
    
@@ -17,57 +20,58 @@ def mesh_from_surfaces(config, outfile):
     except FileExistsError:
         pass
     file_path = config["directory"] + "/{}.stl"
-    print(file_path)
+    domains = config["domains"]
+    name_to_label = {dom["name"]:dom["id"] for dom in domains}
+
     csf_file = file_path.format("csf")
     parenchyma_file = file_path.format("parenchyma")
 
-    components = config["ventricle_components"]
-
-    tmp_file = '/tmp/brain.mesh'
-
-    # --- Options ---
-    # Load input file
     print("loading csf and parenchyma...")
     csf  = svm.Surface(csf_file)
     parenchyma = svm.Surface(parenchyma_file)
+
+    parenchyma.adjust_boundary(config["surface_processing"]["parenchyma"]["grow"])
+    parenchyma.smooth_taubin(config["surface_processing"]["parenchyma"]["smooth"])
+    parenchyma.clip(*config["surface_processing"]["parenchyma"]["clip"], True)
+
+    csf.adjust_boundary(config["surface_processing"]["csf"]["grow"])
+    csf.smooth_taubin(config["surface_processing"]["csf"]["smooth"])
+    csf.clip(*config["surface_processing"]["csf"]["clip"], True)
+
     csf.difference(parenchyma)
-    parenchyma.smooth_taubin(100)
-    csf.smooth_taubin(100)
-
-    clip_plane = [0,0,1]
-    z_val = -110.0
-    parenchyma.clip(0,0,-1, -110, True)
-    csf.clip(0,0,-1, -110, True)
-
+    
     surfaces = [parenchyma, csf]
     comp_surfaces = []
     smap = svm.SubdomainMap()
+    num_regions = len(domains)
+    smap.add(f'{10**(num_regions - 1):{"0"}{num_regions}}',
+             name_to_label["parenchyma"])
+    smap.add(f'{10**(num_regions - 2):{"0"}{num_regions}}',
+             name_to_label["csf"])
 
-    num_regions = 2 + len(components)
-    smap.add(f'{10**(num_regions - 1):{"0"}{num_regions}}', 1)
-    smap.add(f'{10**(num_regions - 2):{"0"}{num_regions}}', 2)
     region_count = 0
+    for dom in domains:
+        comp_name = dom["name"]
+        if comp_name in base_components:
+            continue
+        surface_processing = config["surface_processing"][comp_name]
 
-    for comp_name, comp_config in components.items():
         print(f"loading {comp_name}...")
-
         c = svm.Surface() 
         c = svm.Surface(file_path.format(comp_name))
         c.collapse_edges(0.8)
-        c.smooth_taubin(comp_config["smooth"])
-        c.adjust_boundary(comp_config["grow"])
-        components[comp_name]["surface"] = c
-
-        #c.smooth_laplace(config["smooth"][1])
-
+        c.smooth_taubin(surface_processing["smooth"])
+        c.adjust_boundary(surface_processing["grow"])
         parenchyma.difference(c)
         csf.difference(c)
         comp_surfaces.append(c)
-        smap.add(f'{10**region_count:{"0"}{num_regions}}', comp_config["id"])
+        smap.add(f'{10**region_count:{"0"}{num_regions}}', dom["id"])
         region_count+=1
 
+    print("start difference")
     for s1,s2 in combinations(comp_surfaces, 2):
         s1.difference(s2)
+    print("finshed difference")
 
     surfaces += comp_surfaces
 

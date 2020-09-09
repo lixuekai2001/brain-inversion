@@ -89,7 +89,7 @@ def generate_subdomain_restriction(mesh, subdomains, subdomain_id):
     # Return
     return restriction
 
-def extract_internal_interface(mesh,subdomains, boundaries, interface_id):
+def extract_internal_interface(mesh,subdomains, boundaries, interface_id=None):
     # set internal interface
     for f in facets(mesh):
         domains = []
@@ -97,8 +97,11 @@ def extract_internal_interface(mesh,subdomains, boundaries, interface_id):
             domains.append(subdomains[c])
 
         domains = list(set(domains))
-        if len(domains) > 1:
+        if len(domains) == 1 and interface_id:
             boundaries[f] = interface_id
+        elif len(domains) ==2:
+            boundaries[f] = int(f"{min(domains)}{max(domains)}")
+
 
 def set_external_boundaries(mesh, subdomains, boundaries, subdomain_id, boundary_id, criterion=None):
     if criterion is None:

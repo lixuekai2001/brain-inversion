@@ -13,28 +13,31 @@ from pathlib import Path
 #parameters["partitioning_approach"] = "PARTITION"
 parameters['ghost_mode'] = 'shared_facet' 
 
-def runFluidPorousBrainSim(config):
+def runFluidPorousBrainSim(config_file_path, mesh_file_path, outfile_path):
     with open(config_file_path) as conf_file:
         config = yaml.load(conf_file, Loader=yaml.FullLoader)
-    sim_name = Path(config_file_path).stem
-    print(sim_name)
+    
     set_log_level(config["log_level"])
     num_threads = config["num_threads"]
     if num_threads!="default":
         pass
-    #PETScOptions.set("mat_mumps_use_omp_threads", 1)
+    PETScOptions.set("mat_mumps_use_omp_threads", 4)
     #PETScOptions.set("mat_mumps_icntl_13", 4) # set scalapack use
     PETScOptions.set("mat_mumps_icntl_4", 3) # set mumps verbosity (0-4)
-    PETScOptions.set("mat_mumps_icntl_7", 3) # set mumps ordering
-    PETScOptions.set("mat_mumps_icntl_28", 1) # use 1 for sequential analysis and ictnl(7) ordering, or 2 for parallel analysis and ictnl(29) ordering
-    PETScOptions.set("mat_mumps_icntl_29", 1) # parallel ordering 1 = ptscotch, 2 = parmetis
-    PETScOptions.set("mat_mumps_icntl_35", 1) # set use of BLR (Block Low-Rank) feature (0:off, 1:optimal)
-    PETScOptions.set("mat_mumps_cntl_7", 1e-10) # set BLR relaxation
+    #PETScOptions.set("mat_mumps_icntl_7", 3) # set mumps ordering
+    PETScOptions.set("mat_mumps_icntl_22", 1) # use out of core
+    #PETScOptions.set("mat_mumps_icntl_28", 1) # use 1 for sequential analysis and ictnl(7) ordering, or 2 for parallel analysis and ictnl(29) ordering
+    #PETScOptions.set("mat_mumps_icntl_29", 1) # parallel ordering 1 = ptscotch, 2 = parmetis
+    #PETScOptions.set("mat_mumps_icntl_35", 1) # set use of BLR (Block Low-Rank) feature (0:off, 1:optimal)
+    #PETScOptions.set("mat_mumps_cntl_7", 1e-10) # set BLR relaxation
 
     #PETScOptions.set("snes_lag_jacobian",1) #use -1 to never recompute
 
     # set parameter
-    mesh_name = config["mesh_dir_name"]
+    sim_name = Path(config_file_path).stem
+    mesh_stem = Path(mesh_file_path).stem
+    mesh_parent = Path(mesh_file_path).parent
+    mesh_path = f"{mesh_parent}/{mesh_stem}"
     T = config["T"]
     num_steps = config["num_steps"]
     dt = T/num_steps
@@ -48,12 +51,10 @@ def runFluidPorousBrainSim(config):
     material_parameter["lmbda"] = Constant(nu*E/((1.0-2.0*nu)*(1.0+nu)))
 
     # read meshes:
-    infile_dir = f"meshes/{mesh_name}"
-    outfile = f"results/{mesh_name}_{sim_name}/results.xdmf"
-    subdomains_infile = f"{infile_dir}/{mesh_name}.xdmf"
-    boundary_infile = f"{infile_dir}/{mesh_name}_boundaries.xdmf"
-    porous_restriction_file = f"{infile_dir}/{mesh_name}_porous.rtc.xdmf"
-    fluid_restriction_file = f"{infile_dir}/{mesh_name}_fluid.rtc.xdmf"
+    subdomains_infile = f"{mesh_path}.xdmf"
+    boundary_infile = f"{mesh_path}_boundaries.xdmf"
+    porous_restriction_file = f"{mesh_path}_porous.rtc.xdmf"
+    fluid_restriction_file = f"{mesh_path}_fluid.rtc.xdmf"
 
     # subdomain ids
     fluid_id = 2
@@ -69,7 +70,6 @@ def runFluidPorousBrainSim(config):
     mesh = Mesh()
     infile.read(mesh)
     gdim = mesh.geometric_dimension()
-    #mesh.smooth(50)
     subdomains = MeshFunction("size_t", mesh, gdim, 0)
     infile.read(subdomains)
     infile.close()
@@ -149,21 +149,29 @@ def runFluidPorousBrainSim(config):
                             g_source=g_source,
                             outlet_pressure=spinal_pressure,
                             initial_pressure=initial_pressure,
-                            filename=outfile,
+                            filename=outfile_path,
                             elem_type=config["element_type"],
                             linearize=config["linearize"],
                             move_mesh=False,
                             time_dep_expr=[g_source, spinal_pressure])
 
-    return f"../results/{mesh_name}_{T}_{num_steps}/{mesh_name}_{T}_{num_steps}"
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("c",
+    parser.add_argument("-c",
         metavar="config.yml",
         help="path to config file",
         type=str,)
+    parser.add_argument("-m",
+        metavar="mesh.xdml",
+        help="path to mesh file",
+        type=str,)
+    parser.add_argument("-o",
+        metavar="result.xdml",
+        help="path to outfile",
+        type=str,)
     conf_arg = vars(parser.parse_args())
     config_file_path = conf_arg["c"]
-    target_folder = runFluidPorousBrainSim(config_file_path)
-    os.popen(f'cp {config_file_path} {target_folder}_config.yml') 
+    mesh_file_path = conf_arg["m"]
+    outfile_path = conf_arg["o"]
+    runFluidPorousBrainSim(config_file_path, mesh_file_path, outfile_path)
