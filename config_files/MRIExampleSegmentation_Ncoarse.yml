@@ -1,0 +1,55 @@
+directory : "brainMeshBaseFiles/MRIExampleSegmentation"
+cell_size : 8.0 # in mm
+edge_size : 4.0
+facet_size : 4
+facet_angle : 30.0
+facet_distance : 0.4
+cell_radius_edge_ratio : 3.0
+scaling : 1.0e-3 # mm to m
+odt : False
+exude : False
+domains :
+  - {name : parenchyma, id : 1, type : porous}
+  - {name : csf, id : 2, type : fluid}
+  - {name : fourth_ventricle, id : 8, type : fluid}
+  - {name : lateral_ventricles, id : 7, type : fluid}
+  - {name : foramina, id : 6, type : fluid}
+  - {name : median_aperture, id : 3, type : fluid}
+  - {name : third_ventricle, id : 4, type : fluid}
+  - {name : aqueduct, id : 5, type : fluid}
+
+surface_processing:
+  parenchyma : {grow : 0.0, smooth : 100, clip : [ 0, 0.0 , -1 ,-110]}
+  csf : {grow : 0.0, smooth : 100, clip : [ 0, 0, -1, -110] }
+  median_aperture : { grow : 0.2, smooth : 500}
+  third_ventricle : { grow : 0.1, smooth : 500}
+  aqueduct : { grow : 0.2, smooth : 100}
+  lateral_ventricles : { grow : 0.0,  smooth : 100}
+  fourth_ventricle : { grow : 0.5, smooth : 1500}
+  foramina : { grow : 0.8, smooth : 20}
+probes :
+  ventricular_system:
+    "right_lat_horn" : [0.03143779052656093, 0.003711848707496808, -0.01133390164323887]
+    "left_lat_horn" : [-0.035331593765951554, 0.004151629303731961, -0.012263428462832859]
+    "lateral_ventricles": [0.0015070871416012872, 0.02358810296507255, 0.017991185225210336]
+    "third_ventricle" : [-0.00045622750007505864, -0.010645462721854442, 0.0107555415555151]
+    "aqueduct" : [-0.0013850756749318421, -0.018096559756647607, -0.005791618226242737]
+    "fourth_venticle" : [-0.0013419064399334654, -0.026152607553917392, -0.027750066051531342]
+    "median_aperture" : [-0.0016058388692577166, -0.032447425990328585, -0.04600117488829501]
+  sas:
+    "spinal_canal": [-0.000767256847465048, -0.03094325458398209, -0.10242404571396238]
+    "brain_stem" : [-0.0014902204188636488, -0.024863769677751956, -0.09956435916964233]
+    "front_sas" : [-0.0016692769657097196, 0.08658054885448267, 0.016711414054160007]
+    "top_sas" : [-0.0028080956832846156, -0.031145142228593818, 0.06816963181882568]
+    "back_sas" : [-0.0010018866806678257, -0.09396552908779228, 0.004199370078325736]
+    "left_sas" : [0.06706644802553782, -0.006853577293965964, 0.01374631596428793]
+    "right_sas" : [-0.06710811824153429, -0.005802153783058008, 0.02041346627864035]
+    "bottom_sas" : [-0.0004974939748296572, -0.008056710930215904, -0.04043718137253278]
+  parenchyma:
+    "front_parenchyma" : [-0.00204092219268566, 0.0621882213514154, 0.014020294780783952]
+    "back_parenchyma" : [-0.0010667874460265176, -0.06434850385047788, 0.006207790107735872]
+    "top_parenchyma" : [-0.002145338277091235, -0.02257952991257364, 0.05259993282071532]
+
+
+
+

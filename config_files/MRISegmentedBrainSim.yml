@@ -1,5 +1,5 @@
 # Config file for coupled Fluid Porous Interaction Brain Sim
-mesh_dir_name : MRIExampleSegmentation_N15.0
+mesh_dir_name : MRIExampleSegmentation_N15
 num_threads : 4
 log_level : 16
 T : 1.0

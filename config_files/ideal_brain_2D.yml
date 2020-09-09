@@ -1,6 +1,5 @@
 # config file for 2D idealized brain mesh generation
 dim : 2
-N : 50 
 brain_radius : 0.1
 sas_radius : 0.12
 ventricle_radius :  0.03
@@ -10,4 +9,11 @@ canal_length : 0.2
 ventricle_probe : [0,0]
 sas_probe : [0.11, 0.0]
 parenchyma_probe : [0.05,0.0]
+domains :
+  # subdomain ids
+  - {name : parenchyma, id : 1, type : porous}
+  - {name : csf, id : 2, type : fluid}
+  - {name : aqueduct, id : 3, type }
+  - {name : ventricle, id : 4, type}
+ 
 
