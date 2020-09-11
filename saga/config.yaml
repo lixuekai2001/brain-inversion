@@ -1,9 +1,12 @@
-restart-times: 1
+restart-times: 2
 jobscript: "slurm-jobscript.sh"
 cluster: "slurm-submit.py"
 cluster-status: "slurm-status.py"
 jobs : 10
-max-jobs-per-second: 1
+max-jobs-per-second: 5
 max-status-checks-per-second: 10
 local-cores: 1
 latency-wait: 60
+rerun-incomplete: True
+printshellcmds: True
+keep-going : True

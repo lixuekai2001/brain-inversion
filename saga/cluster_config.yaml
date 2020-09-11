@@ -1,0 +1,11 @@
+
+__default__:
+  account: NN9316K
+  nodes : 1
+  tasks-per-node: 4
+  mem : 10G
+  time : 01:00:00
+  job-name : "{rule}.{wildcards}"
+  output : "logs/saga/{rule}.{wildcards}.out"
+  error : "logs/saga/{rule}.{wildcards}.err"
+  
