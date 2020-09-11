@@ -23,6 +23,8 @@ ENV PETSC_VERSION=3.12.3 \
     PETSC4PY_VERSION=3.12.0 \
     SLEPC4PY_VERSION=3.12.0 \
     TRILINOS_VERSION=12.10.1 \
+    MPICH_VERSION=3.3 \
+    MPICH_DIR=/opt/mpich \
     #OPENBLAS_NUM_THREADS=1 \
     #OPENBLAS_VERBOSE=0 \
     FENICS_PREFIX=$FENICS_HOME/local
@@ -54,18 +56,19 @@ RUN apt-get -qq update && \
         libeigen3-dev \
         libfreetype6-dev \
         liblapack-dev \
-        libopenmpi-dev \
+        #libopenmpi-dev \
         #libmpich-dev \
         libopenblas-dev \
         libpcre3-dev \
         libpng-dev \
-        libhdf5-openmpi-dev \
-        #libhdf5-mpich-dev \
+        #libhdf5-dev \
+        #libhdf5-openmpi-dev \
+        libhdf5-mpich-dev \
         libgmp-dev \
         libcln-dev \
         libmpfr-dev \
         man \
-        openmpi \
+        #openmpi-bin \
         #mpich \
         nano \
         pkg-config \
@@ -97,6 +100,22 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && \
     pip3 install --no-cache-dir setuptools && \
     rm -rf /tmp/*
 
+## Install MPICH
+RUN echo "Installing MPICH..." && \
+    mkdir -p /tmp/mpich && \
+    mkdir -p /opt && \
+    export MPICH_URL="http://www.mpich.org/static/downloads/$MPICH_VERSION/mpich-$MPICH_VERSION.tar.gz" && \
+    cd /tmp/mpich && wget -O mpich-$MPICH_VERSION.tar.gz $MPICH_URL && tar xzf mpich-$MPICH_VERSION.tar.gz && \
+    # Compile and install
+    cd /tmp/mpich/mpich-$MPICH_VERSION && ./configure --prefix=$MPICH_DIR && make install
+
+ENV PATH=$MPICH_DIR/bin:$PATH  \
+    LD_LIBRARY_PATH=$MPICH_DIR/lib:$LD_LIBRARY_PATH  \
+    MANPATH=$MPICH_DIR/share/man:$MANPATH \
+    SINGULARITY_MPICH_DIR=$MPICH_DIR  \
+    SINGULARITYENV_APPEND_PATH=$MPICH_DIR/bin  \
+    SINGULAIRTYENV_APPEND_LD_LIBRARY_PATH=$MPICH_DIR/lib 
+    
 # Install PETSc from source
 RUN apt-get -qq update && \
     apt-get -y install \
@@ -107,6 +126,7 @@ RUN apt-get -qq update && \
     ./configure --COPTFLAGS="-O2" \
                 --CXXOPTFLAGS="-O2" \
                 --FOPTFLAGS="-O2" \
+                --with-mpi-dir=$MPICH_DIR \
                 --with-fortran-bindings=no \
                 --with-debugging=0 \
                 --with-openmp \
@@ -192,5 +212,6 @@ RUN apt-get -qq update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     pip3 -q install --upgrade --no-cache-dir pip meshio==4.0.13 jdata pyvista gmsh pygmsh pyyaml && \
-    export PYTHONPATH=/usr/local/lib/python3/dist-packages/gmsh-4.6.0-Linux64-sdk/lib/ &&\
     cat /dev/null > $FENICS_HOME/WELCOME
+
+ENV PYTHONPATH=/usr/local/lib/python3/dist-packages/gmsh-4.6.0-Linux64-sdk/lib/
