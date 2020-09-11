@@ -1,5 +1,5 @@
 
-idealized_simulations = {"ideal_brain_3D_N100":"IdealizedBrain3DBrainSim"}
+idealized_simulations = {"ideal_brain_3D_N160":"IdealizedBrain3DBrainSim"}
 real_brain_simulations = {"MRIExampleSegmentation_Ncoarse":"MRISegmentedBrainSim",
                           "MRIExampleSegmentation_Nmid":"MRISegmentedBrainSim",
                           #"MRIExampleSegmentation_Nfine":"MRISegmentedBrainSim"
@@ -7,6 +7,23 @@ real_brain_simulations = {"MRIExampleSegmentation_Ncoarse":"MRISegmentedBrainSim
 
 
 ruleorder: generateMeshFromStl > generateMeshFromCSG
+
+# input size in mb, num cpus, ram in mb
+ressource_from_inputsize = [(0.5, 4, 4000), (4, 4, 8000), (10, 8, 20000),(20, 12, 30000), (40, 12, 60000),
+                            (80, 12, 80000), (120, 20, 120000), (180, 32, 140000), (240, 40, 184000) ]
+
+
+def estimate_ressources(wildcards, input, attempt):
+    mem = 184000
+    cpus = 40
+    for res in ressource_from_inputsize:
+        if res[0] > input.size_mb:
+            cpus = int(min(res[1]*1.3**attempt, 40))
+            mem = int(min(res[2]*1.3**attempt, 184000))
+            break
+    
+    return {"mem_mb":mem, "cpus":cpus}
+
 
 rule all:
     input:
@@ -43,11 +60,13 @@ rule runBrainSim:
     log:
         "results/{mesh}_{sim_name}/log"
     resources:
-        mem_mb=100000 ,  #lambda wildcards, input: int(max(0.2e4*input.size_mb, 1000)),
-        cpus=20        #lambda wildcards, input: 4 if input.size_mb < 1000 else 40
+        mem_mb=lambda wildcards, input, attempt: estimate_ressources(wildcards, input, attempt)["mem_mb"],
+        cpus=lambda wildcards, input, attempt: estimate_ressources(wildcards, input, attempt)["cpus"],
+        input_mem_mb=lambda wildcards, input, attempt: int(input.size_mb)
     shell:
         """
-        singularity exec {params.sing_image} mpirun -n {resources.cpus} \
+        mpirun --bind-to core -n {resources.cpus} \
+        singularity exec --bind $SCRATCH:/tmp/ {params.sing_image} \
         python3 scripts/runFluidPorousBrainSim.py \
         -c {input.config} \
         -m {input.meshfile} \

@@ -54,16 +54,19 @@ RUN apt-get -qq update && \
         libeigen3-dev \
         libfreetype6-dev \
         liblapack-dev \
-        libmpich-dev \
+        libopenmpi-dev \
+        #libmpich-dev \
         libopenblas-dev \
         libpcre3-dev \
         libpng-dev \
-        libhdf5-mpich-dev \
+        libhdf5-openmpi-dev \
+        #libhdf5-mpich-dev \
         libgmp-dev \
         libcln-dev \
         libmpfr-dev \
         man \
-        mpich \
+        openmpi \
+        #mpich \
         nano \
         pkg-config \
         wget \
