@@ -25,7 +25,7 @@ def generate3DIdealizedBrainMesh(config):
     os.popen(f'mkdir -p {path}') 
     h = 1.0/N
     geom = pygmsh.opencascade.Geometry(
-            characteristic_length_min=0,
+            characteristic_length_min=h/5,
             characteristic_length_max=h,
             )
 

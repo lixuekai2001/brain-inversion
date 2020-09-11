@@ -27,6 +27,14 @@ surface_processing:
   lateral_ventricles : { grow : 0.0,  smooth : 50}
   fourth_ventricle : { grow : 0.5, smooth : 1500}
   foramina : { grow : 0.8, smooth : 20}
+refinement:
+  - {name: csf, iterations : 1, target_size: 0.002}
+  - {name: aqueduct, iterations : 1, target_size: 0.002}
+  - {name: fourth_ventricle, iterations : 1, target_size: 0.002}
+  - {name: lateral_ventricles, iterations : 1, target_size: 0.002}
+  - {name: foramina, iterations : 1, target_size: 0.002}
+  - {name: median_aperture, iterations : 1, target_size: 0.002}
+  - {name: third_ventricle, iterations : 1, target_size: 0.002}
 probes :
   ventricular_system:
     "right_lat_horn" : [0.03143779052656093, 0.003711848707496808, -0.01133390164323887]
