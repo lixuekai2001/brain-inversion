@@ -53,13 +53,12 @@ def extract_subdomains_from_physiological_labels(mesh_file):
 
     labels = MeshFunction("size_t", mesh, gdim, 0)
     file.read(labels, "subdomains")
-    
+    file.close()
 
     #print(labels.array()[:].sum())
     #mesh = refine(mesh)
     #labels = adapt(labels, mesh)
     #print(labels.array()[:].sum())
-
 
 
     for refine_config in refinement:
@@ -72,11 +71,15 @@ def extract_subdomains_from_physiological_labels(mesh_file):
             diam_func = project(diam, DG0)
             label_crit = labels.array()[:]==label
             size_crit = diam_func.vector()[:] > refine_config["target_size"]
+            print(f"refining {(label_crit & size_crit).sum()} of {label_crit.sum()} cells in {refine_config['name']}...")
             refine_marker.array()[label_crit & size_crit] = True
-            print(f"refining {refine_marker.array()[:].sum()} cells in region {label}...")
             mesh = refine(mesh, refine_marker)
             labels = adapt(labels, mesh)
     print("finished refinement...")
+    file = XDMFFile(f"{mesh_path}_labels.xdmf")
+    labels.rename("subdomains", "subdomains")
+    file.write(labels)
+    file.close()
 
     subdomains = MeshFunction("size_t", mesh, gdim, 0)
 

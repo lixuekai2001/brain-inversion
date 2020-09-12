@@ -31,11 +31,11 @@ def mesh_from_surfaces(config, outfile):
     parenchyma = svm.Surface(parenchyma_file)
 
     parenchyma.adjust_boundary(config["surface_processing"]["parenchyma"]["grow"])
-    parenchyma.smooth_taubin(config["surface_processing"]["parenchyma"]["smooth"])
+    parenchyma.smooth_taubin(config["surface_processing"]["parenchyma"]["smooth_taubin"])
     parenchyma.clip(*config["surface_processing"]["parenchyma"]["clip"], True)
 
     csf.adjust_boundary(config["surface_processing"]["csf"]["grow"])
-    csf.smooth_taubin(config["surface_processing"]["csf"]["smooth"])
+    csf.smooth_taubin(config["surface_processing"]["csf"]["smooth_taubin"])
     csf.clip(*config["surface_processing"]["csf"]["clip"], True)
 
     csf.difference(parenchyma)
@@ -49,7 +49,7 @@ def mesh_from_surfaces(config, outfile):
     smap.add(f'{10**(num_regions - 2):{"0"}{num_regions}}',
              name_to_label["csf"])
 
-    region_count = 0
+    region_count = num_regions -3 
     for dom in domains:
         comp_name = dom["name"]
         if comp_name in base_components:
@@ -59,18 +59,21 @@ def mesh_from_surfaces(config, outfile):
         print(f"loading {comp_name}...")
         c = svm.Surface() 
         c = svm.Surface(file_path.format(comp_name))
-        c.collapse_edges(0.8)
-        c.smooth_taubin(surface_processing["smooth"])
         c.adjust_boundary(surface_processing["grow"])
+        if "smooth_taubin" in surface_processing.keys():
+             c.smooth_taubin(surface_processing["smooth_taubin"])
+        if "smooth_shape" in surface_processing.keys():
+            c.smooth_shape(*surface_processing["smooth_shape"])
         parenchyma.difference(c)
-        csf.difference(c)
+        c.difference(csf)
         comp_surfaces.append(c)
         smap.add(f'{10**region_count:{"0"}{num_regions}}', dom["id"])
-        region_count+=1
+        region_count-=1
 
     print("start difference")
     for s1,s2 in combinations(comp_surfaces, 2):
         s1.difference(s2)
+        
     print("finshed difference")
 
     surfaces += comp_surfaces

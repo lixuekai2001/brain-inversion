@@ -4,12 +4,9 @@ import argparse
 import yaml
 import numpy as np
 import os
+from pathlib import Path
 
-interface_id : 1
-rigid_skull_id : 2
-spinal_outlet_id : 3
-
-def generate3DIdealizedBrainMesh(config):
+def generate3DIdealizedBrainMesh(config, outfile):
 
     import pygmsh
     ids = {dom["name"]:dom["id"] for dom in  config["domains"]}
@@ -21,11 +18,15 @@ def generate3DIdealizedBrainMesh(config):
     canal_width =  config["canal_width"] 
     canal_length = config["canal_length"] 
     
-    path = f"meshes/ideal_brain_3D_N{N}/ideal_brain_3D_N{N}"
-    os.popen(f'mkdir -p {path}') 
-    h = 1.0/N
+    try:
+        os.mkdir(Path(outfile).parent)
+    except FileExistsError:
+        pass
+    h = config["h"]
+    MinimumElementsPerTwoPi = config["MinimumElementsPerTwoPi"]
+    smooth = config["smooth"]
     geom = pygmsh.opencascade.Geometry(
-            characteristic_length_min=h/5,
+            characteristic_length_min=h/10,
             characteristic_length_max=h,
             )
 
@@ -44,19 +45,23 @@ def generate3DIdealizedBrainMesh(config):
     geom.add_physical(aqueduct, ids["aqueduct"])
     geom.add_physical(ventricle, ids["ventricle"])
 
-    mesh = pygmsh.generate_mesh(geom, extra_gmsh_arguments=["-string", "Mesh.Smoothing=50;"])
-    meshio.write(path + "_labels.xdmf",
+    mesh = pygmsh.generate_mesh(geom, extra_gmsh_arguments=["-string", "Mesh.CharacteristicLengthFromCurvature=1;",
+                                                            "-string", "Mesh.CharacteristicLengthExtendFromBoundary=1;",
+                                                            "-string", f"Mesh.MinimumElementsPerTwoPi={MinimumElementsPerTwoPi};",
+                                                            "-string", f"Mesh.Smoothing={smooth};"])
+    meshio.write(outfile,
              meshio.Mesh(points=mesh.points, 
              cells={"tetra": mesh.cells_dict["tetra"]},
              cell_data={"subdomains":mesh.cell_data["gmsh:physical"]}))
 
     #generate_boundaries(path, canal_length)
-    return path
+    return
 
 
 def generate2DIdealizedBrainMesh(config):
     from mshr import Circle, Rectangle, generate_mesh
     ids = {dom["name"]:dom["id"] for dom in  config["domains"]}
+    N = 1/config["h"]
     N = config["N"] #
     brain_radius = config["brain_radius"] # 0.1
     sas_radius = config["sas_radius"] # brain_radius*1.2
@@ -122,19 +127,18 @@ if __name__=="__main__":
         metavar="config.yml",
         help="path to config file",
         type=str,)
-    parser.add_argument("-N",help="resolution",type=int,)
+    parser.add_argument("-o",help="outfile",type=str,)
     conf_arg = vars(parser.parse_args())
     config_file_path = conf_arg["c"]
-    N = conf_arg["N"]
-
+    outfile = conf_arg["o"]
     with open(config_file_path) as conf_file:
         config = yaml.load(conf_file, Loader=yaml.UnsafeLoader)
-    config["N"] = N
     config = compute_geometry(config)
     if config["dim"] == 3:
-        target_folder = generate3DIdealizedBrainMesh(config)
+        generate3DIdealizedBrainMesh(config, outfile)
     elif config["dim"] == 2:
-        target_folder = generate2DIdealizedBrainMesh(config)
-    with open(f"{target_folder}_config.yml", 'w') as conf_outfile:
+        generate2DIdealizedBrainMesh(config)
+    conf_path =f"{Path(outfile).parent}/{Path(outfile).stem[:-7]}_config.yml"
+    with open(conf_path, 'w') as conf_outfile:
         yaml.dump(config, conf_outfile, default_flow_style=None)
 
