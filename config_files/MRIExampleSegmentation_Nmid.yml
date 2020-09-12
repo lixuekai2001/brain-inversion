@@ -11,30 +11,30 @@ exude : False
 domains :
   - {name : parenchyma, id : 1, type : porous}
   - {name : csf, id : 2, type : fluid}
+  - {name : aqueduct, id : 5, type : fluid}
+  - {name : median_aperture, id : 3, type : fluid}
+  - {name : foramina, id : 6, type : fluid}
   - {name : fourth_ventricle, id : 8, type : fluid}
   - {name : lateral_ventricles, id : 7, type : fluid}
-  - {name : foramina, id : 6, type : fluid}
-  - {name : median_aperture, id : 3, type : fluid}
   - {name : third_ventricle, id : 4, type : fluid}
-  - {name : aqueduct, id : 5, type : fluid}
 
 surface_processing:
-  parenchyma : {grow : 0.0, smooth : 100, clip : [ 0, 0.0 , -1 ,-110]}
-  csf : {grow : 0.0, smooth : 100, clip : [ 0, 0, -1, -110] }
-  median_aperture : { grow : 0.2, smooth : 200}
-  third_ventricle : { grow : 0.1, smooth : 500}
-  aqueduct : { grow : 0.2, smooth : 100}
-  lateral_ventricles : { grow : 0.0,  smooth : 50}
-  fourth_ventricle : { grow : 0.5, smooth : 1500}
-  foramina : { grow : 0.8, smooth : 20}
+  parenchyma : {grow : 0.0, smooth_taubin : 100, clip : [ 0, 0.0 , -1 ,-110]}
+  csf : {grow : 0.0, smooth_taubin : 100, clip : [ 0, 0, -1, -110] }
+  median_aperture : { grow : 0.2, smooth_shape : [0.12, 12] }
+  third_ventricle : { grow : 0.1, smooth_shape : [0.1 , 10] }
+  aqueduct : { grow : 0.2, smooth_shape : [0.1 , 10] }
+  lateral_ventricles : { grow : 0.0,  smooth_taubin : 100}
+  fourth_ventricle : { grow : 0.4, smooth_shape : [0.15, 15]}
+  foramina : { grow : 0.8, smooth_taubin : 10}
 refinement:
-  - {name: csf, iterations : 1, target_size: 0.002}
-  - {name: aqueduct, iterations : 1, target_size: 0.002}
-  - {name: fourth_ventricle, iterations : 1, target_size: 0.002}
-  - {name: lateral_ventricles, iterations : 1, target_size: 0.002}
-  - {name: foramina, iterations : 1, target_size: 0.002}
-  - {name: median_aperture, iterations : 1, target_size: 0.002}
-  - {name: third_ventricle, iterations : 1, target_size: 0.002}
+  - {name: aqueduct, iterations : 1, target_size: 0.005}
+  - {name: fourth_ventricle, iterations : 1, target_size: 0.005}
+  - {name: lateral_ventricles, iterations : 1, target_size: 0.005}
+  - {name: foramina, iterations : 1, target_size: 0.005}
+  - {name: median_aperture, iterations : 1, target_size: 0.005}
+  - {name: third_ventricle, iterations : 1, target_size: 0.005}
+  - {name: csf, iterations : 2, target_size: 0.006}
 probes :
   ventricular_system:
     "right_lat_horn" : [0.03143779052656093, 0.003711848707496808, -0.01133390164323887]
