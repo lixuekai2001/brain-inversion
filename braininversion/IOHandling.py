@@ -39,9 +39,8 @@ def read_xdmf_timeseries(filename, idx=None, variables=None):
         for k in idx:
             t, point_data, cell_data = reader.read_data(k)
             times.append(t)
-            """
+            data_dict = dict()
             for name, data in point_data.items():
-                data_dict = dict()
                 if variables is not None:
                     if name in variables:
                         data_dict[name] = data
@@ -50,16 +49,15 @@ def read_xdmf_timeseries(filename, idx=None, variables=None):
             point_dataset.append(data_dict)
             data_dict = dict()
             for name, data in cell_data.items():
-                data_dict = dict()
                 if variables is not None:
                     if name in variables:
                         data_dict[name] = data
                 else:
                         data_dict[name] = data
             cell_data_set.append(data_dict)
-            """
-            point_dataset.append(point_data)
-            cell_data_set.append(cell_data)
+            
+            #point_dataset.append(point_data)
+            #cell_data_set.append(cell_data)
     return times, points, cells, point_dataset, cell_data_set
 
 

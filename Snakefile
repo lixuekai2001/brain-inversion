@@ -1,15 +1,16 @@
 
-idealized_simulations = {"ideal_brain_3D_N160":"IdealizedBrain3DBrainSim"}
-real_brain_simulations = {"MRIExampleSegmentation_Ncoarse":"MRISegmentedBrainSim",
-                          "MRIExampleSegmentation_Nmid":"MRISegmentedBrainSim",
-                          #"MRIExampleSegmentation_Nfine":"MRISegmentedBrainSim"
+idealized_simulations = {"ideal_brain_3D_Ncoarse":"stdBrainSim",
+                         "ideal_brain_3D_Nmid":"stdBrainSim"}
+real_brain_simulations = {"MRIExampleSegmentation_Ncoarse":"stdBrainSim",
+                          #"MRIExampleSegmentation_Nmid":"stdBrainSim",
+                          #"MRIExampleSegmentation_Nfine":"stdBrainSim"
                           }
 
 
 ruleorder: generateMeshFromStl > generateMeshFromCSG
 
 # input size in mb, num cpus, ram in mb
-ressource_from_inputsize = [(0.5, 4, 4000), (4, 4, 8000), (10, 8, 20000),(20, 12, 30000), (40, 12, 60000),
+ressource_from_inputsize = [(1, 4, 4000), (5, 4, 8000), (10, 8, 20000),(20, 12, 30000), (40, 12, 60000),
                             (80, 12, 80000), (120, 20, 120000), (180, 32, 140000), (240, 40, 184000) ]
 
 
@@ -18,8 +19,8 @@ def estimate_ressources(wildcards, input, attempt):
     cpus = 40
     for res in ressource_from_inputsize:
         if res[0] > input.size_mb:
-            cpus = int(min(res[1]*1.3**attempt, 40))
-            mem = int(min(res[2]*1.3**attempt, 184000))
+            cpus = int(min(res[1]*1.3**(attempt -1), 40))
+            mem = int(min(res[2]*1.3**(attempt -1), 184000))
             break
     
     return {"mem_mb":mem, "cpus":cpus}
@@ -116,10 +117,10 @@ rule generateMeshFromStl:
 
 rule generateMeshFromCSG:
     input:
-        config = "config_files/{mesh}.yml"
+        config = "config_files/{mesh}_N{resolution}.yml"
     output:
-        "meshes/{mesh}_N{resolution}/{mesh}_N{resolution}_labels.xdmf",
         "meshes/{mesh}_N{resolution}/{mesh}_N{resolution}_labels.h5",
+        meshfile = "meshes/{mesh}_N{resolution}/{mesh}_N{resolution}_labels.xdmf",
         config = "meshes/{mesh}_N{resolution}/{mesh}_N{resolution}_config.yml",
 
     params:
@@ -128,7 +129,7 @@ rule generateMeshFromCSG:
         """
         singularity exec {params.sing_image} \
         python3 scripts/generateIdealizedBrainMesh.py \
-        -c config_files/{wildcards.mesh}.yml -N {wildcards.resolution}
+        -c {input.config} -o {output.meshfile}
         """
    
 
