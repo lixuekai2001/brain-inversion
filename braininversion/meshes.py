@@ -97,7 +97,7 @@ def extract_internal_interface(mesh,subdomains, boundaries, interface_id=None):
             domains.append(subdomains[c])
 
         domains = list(set(domains))
-        if len(domains) == 1 and interface_id:
+        if len(domains) == 2 and interface_id is not None:
             boundaries[f] = interface_id
         elif len(domains) ==2:
             boundaries[f] = int(f"{min(domains)}{max(domains)}")
