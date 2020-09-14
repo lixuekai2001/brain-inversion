@@ -76,13 +76,13 @@ def xdmf_to_unstructuredGrid(filename, idx=None, variables=None):
     cell_type = vtk.VTK_TETRA
 
     c = np.insert(c, 0, p, axis=1) # insert number of points per cell at begin of cell row
-    print(f"{n} cells with {p} points per cell detected")
+    #print(f"{n} cells with {p} points per cell detected")
     offset = np.arange(start=0, stop=n*(p+1), step=p+1)
     grid = pv.UnstructuredGrid(offset, c, np.repeat(cell_type, n), points)
     for i, p_data in enumerate(point_dataset):
         for name, data in p_data.items():
-            grid.point_arrays[f"{name}_{times[i]:5f}"] = data
+            grid.point_arrays[f"{name}"] = data
     for i, c_data in enumerate(cell_dataset):
         for name, data in c_data.items():
-            grid.cell_arrays[f"{name}_{times[i]:5f}"] = data
+            grid.cell_arrays[f"{name}"] = data
     return grid

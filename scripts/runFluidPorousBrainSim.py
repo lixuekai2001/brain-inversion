@@ -1,7 +1,7 @@
 from dolfin import *
 from multiphenics import *
 from braininversion.BiotNavierStokesSolver import solve_biot_navier_stokes
-from braininversion.ArrayExpression import getArrayExpression
+from braininversion.SourceExpression import get_source_expression
 import argparse
 import yaml
 import os
@@ -97,46 +97,10 @@ def runFluidPorousBrainSim(config_file_path, mesh_file_path, outfile_path):
         ]
 
     source_conf = config["source_data"]
-    if "source_expression" in source_conf.keys():
-        if source_conf["scale_by_total_vol"]:
-            dx = Measure("dx", domain=mesh, subdomain_data=subdomains)
-            tot_parenchyma_vol = assemble(1.0*dx(porous_id))
-            fluid_vol = assemble(1.0*dx(fluid_id))
-            vol_scal=1.0/tot_parenchyma_vol
-            print(f"total volume of brain tissue: {tot_parenchyma_vol}")
-            print(f"total volume of CSF: {fluid_vol}")
-        else:
-            vol_scal = 1
-        g_source = Expression("vol_scal*" + source_conf["source_expression"],
-                        t=0.0,degree=2, vol_scal=vol_scal,
-                        **source_conf["source_params"])
-                        
-    elif "source_file" in source_conf.keys():
-        #g_source = InterpolatedSource(source_conf["source_file"])
-        data = np.loadtxt(source_conf["source_file"], delimiter=",")
-        t = data[:,0]
-        inflow = data[:,1]
-        if "scaling" in source_conf.keys():
-            inflow *= source_conf["scaling"]
-        if source_conf["scale_by_total_vol"]:
-            dx = Measure("dx", domain=mesh, subdomain_data=subdomains)
-            tot_parenchyma_vol = assemble(1.0*dx(porous_id))
-            fluid_vol = assemble(1.0*dx(fluid_id))
-            inflow /= tot_parenchyma_vol
-            print(f"total volume of brain tissue: {tot_parenchyma_vol}")
-            print(f"total volume of CSF: {fluid_vol}")
+    g_source = get_source_expression(source_conf, mesh,
+                                     subdomains, porous_id,
+                                     times)
     
-        values = np.interp(times, t, inflow, period = t[-1])
-        plt.figure()
-        plt.plot(times, values)
-        plt.savefig("source_time_series.png")
-        g_source = getArrayExpression(values)
-        i = 1
-        g_source.i = i
-        assert g_source(Point(0, 0, 0)) == values[i]
-        i = len(times) - 1
-        g_source.i = i
-        assert g_source(Point(0, 0, 0)) == values[i]
     #g_source = Expression("0.0", degree=2, t=0.0)
     solve_biot_navier_stokes(mesh, T, num_steps,
                             material_parameter, 
