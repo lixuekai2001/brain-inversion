@@ -105,7 +105,8 @@ def compute_geometry(config):
     elif "from_volumes" in config.keys():
         vols = config["from_volumes"]
         config["ventricle_radius"] = radius_from_sphere_volume(vols["ventricle_volume"])
-        config["brain_radius"] = radius_from_sphere_volume(vols["ventricle_volume"] + vols["parenchyma_volume"])
+        config["brain_radius"] = radius_from_sphere_volume(vols["ventricle_volume"]
+                                                         + vols["parenchyma_volume"])
         config["sas_radius"] = radius_from_sphere_volume(vols["ventricle_volume"] +
                                                          vols["parenchyma_volume"] +
                                                          vols["sas_volume"])
