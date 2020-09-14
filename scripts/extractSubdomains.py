@@ -99,7 +99,7 @@ def extract_subdomains_from_physiological_labels(mesh_file):
     rigid_skull.mark(boundaries, rigid_skull_id)
 
     # set internal interface
-    extract_internal_interface(mesh,subdomains, boundaries, interface_id=interface_id)
+    extract_internal_interface(mesh, subdomains, boundaries, interface_id=interface_id)
     extract_internal_interface(mesh, labels, label_boundaries)
 
 

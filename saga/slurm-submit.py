@@ -18,7 +18,7 @@ RESOURCE_MAPPING = {
     "mem": ("mem", "mem_mb", "ram", "memory"),
     "mem-per-cpu": ("mem-per-cpu", "mem_per_cpu", "mem_per_thread"),
     "nodes": ("nodes", "nnodes"),
-    "cpus-per-task": ("cpus_per_task")
+    "ntasks": ("ntasks","cpus")
 }
 
 # parse job

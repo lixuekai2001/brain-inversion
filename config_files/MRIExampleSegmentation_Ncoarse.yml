@@ -29,12 +29,12 @@ surface_processing:
   foramina : { grow : 0.8, smooth_taubin : 10}
 
 refinement : 
-  - {name: aqueduct, iterations : 1, target_size: 0.006}
-  - {name: fourth_ventricle, iterations : 1, target_size: 0.006}
-  - {name: lateral_ventricles, iterations : 1, target_size: 0.006}
-  - {name: foramina, iterations : 1, target_size: 0.006}
-  - {name: median_aperture, iterations : 1, target_size: 0.006}
-  - {name: third_ventricle, iterations : 1, target_size: 0.006}
+  - {name: aqueduct, iterations : 0, target_size: 0.006}
+  - {name: fourth_ventricle, iterations : 0, target_size: 0.006}
+  - {name: lateral_ventricles, iterations : 0, target_size: 0.006}
+  - {name: foramina, iterations : 0, target_size: 0.006}
+  - {name: median_aperture, iterations : 0, target_size: 0.006}
+  - {name: third_ventricle, iterations : 0, target_size: 0.006}
   - {name: csf, iterations : 1, target_size: 0.006}
 
 probes :

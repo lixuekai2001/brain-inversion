@@ -39,6 +39,7 @@ def mesh_from_surfaces(config, outfile):
     csf.clip(*config["surface_processing"]["csf"]["clip"], True)
 
     csf.difference(parenchyma)
+
     
     surfaces = [parenchyma, csf]
     comp_surfaces = []
@@ -81,6 +82,9 @@ def mesh_from_surfaces(config, outfile):
     smap.print()
     # Create the volume mesh
     maker = svm.Domain(surfaces, smap)
+    maker.add_sharp_border_edges(csf,70)
+    maker.add_sharp_border_edges(parenchyma,70)
+
 
     maker.create_mesh(config["edge_size"], config["cell_size"], config["facet_size"],
                       config["facet_angle"], config["facet_distance"],

@@ -129,8 +129,8 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
     # extract Dirichlet boundary conditions
     bcs = []
     for bc in boundary_conditions:
-        for marker_id, subsp_vc_val in bc.items():
-            for subspace_id, bc_val in subsp_vc_val.items():
+        for marker_id, subsp_bc_val in bc.items():
+            for subspace_id, bc_val in subsp_bc_val.items():
                 bc_d = DirichletBC(H.sub(subspace_id), bc_val,
                                     boundary_marker, marker_id)
                 bcs.append(bc_d)
@@ -224,6 +224,7 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
     if linearize:
         sol = BlockFunction(H)
         AA = block_assemble(lhs, keep_diagonal=True)
+        bcs.apply(AA)
         solver = PETScLUSolver(AA, "mumps")
         solver.parameters["symmetric"] = True
 
