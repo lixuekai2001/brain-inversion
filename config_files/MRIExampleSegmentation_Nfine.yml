@@ -6,7 +6,7 @@ facet_angle : 30.0
 facet_distance : 0.1
 cell_radius_edge_ratio : 2.5
 scaling : 1.0e-3 # mm to m
-odt : False
+odt : True
 exude : False
 domains :
   - {name : parenchyma, id : 1, type : porous}
