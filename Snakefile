@@ -3,9 +3,10 @@ import numpy as np
 idealized_simulations = {"ideal_brain_3D_Ncoarse":"stdBrainSim",
                          #"ideal_brain_3D_Nmid":"stdBrainSim"
                          }
-real_brain_simulations = {"MRIExampleSegmentation_Ncoarse":"stdBrainSim",
-                          #"MRIExampleSegmentation_Nmid":"stdBrainSim",
-                          #"MRIExampleSegmentation_Nfine":"stdBrainSim"
+real_brain_simulations = {"MRIExampleSegmentation_Nvcoarse":"stdBrainSim",
+                          "MRIExampleSegmentation_Ncoarse":"stdBrainSim",
+                          "MRIExampleSegmentation_Nmid":"stdBrainSim",
+                          #"MRIExampleSegmentation_Nfine":"stdBrainSim",
                           }
 
 
@@ -37,7 +38,7 @@ rule all:
         [f"results/{mesh}_{sim_name}/results.xdmf" for mesh, sim_name in real_brain_simulations.items()]
 
 
-rule all_idealized:
+rule all_ideal:
     input:
         [f"results/{mesh}_{sim_name}/results.xdmf" for mesh, sim_name in idealized_simulations.items()]
 
@@ -49,6 +50,10 @@ rule all_real:
 rule all_meshes:
     input:
         [f"meshes/{mesh_name}/{mesh_name}.xdmf" for mesh_name in list(idealized_simulations.keys()) + list(real_brain_simulations.keys())]
+
+rule ideal_meshes:
+    input:
+        [f"meshes/{mesh_name}/{mesh_name}.xdmf" for mesh_name in list(idealized_simulations.keys())]
 
 
 rule runBrainSim:

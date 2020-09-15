@@ -78,16 +78,10 @@ def runFluidPorousBrainSim(config_file_path, mesh_file_path, outfile_path):
     boundaries =  MeshFunction("size_t", mesh, gdim - 1, 0)
     infile.read(boundaries)
 
-    mmHg2Pa = 132
-    m3tomL = 1e6
-    initial_pressure = 0
+    initial_pressure = config["initial_pressure"]
     # define boundary conditions
-    spinal_pressure = Expression("P0*exp(k*outflow_vol)",
-                                P0 = initial_pressure, k = 5e3,
-                                outflow_vol=0.0, degree=2)
-
-    spinal_pressure = Expression("P0",#"P0 + outflow_vol*b",
-                                 P0 = initial_pressure, b=2*mmHg2Pa*m3tomL,
+    spinal_pressure = Expression(config["spinal_outlet"]["outlet_expression"],
+                                 P0 = initial_pressure, **config["spinal_outlet"]["outlet_params"],
                                  outflow_vol=0.0, degree=2)
 
     #spinal_pressure = Expression("100*sin(2*pi*t)", t=0.0, degree=2)
