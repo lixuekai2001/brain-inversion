@@ -1,6 +1,6 @@
 # Config file for coupled Fluid Porous Interaction Brain Sim
 num_threads : 4
-log_level : 16
+log_level : 20
 T : 4.0
 num_steps : 120
 material_parameter:
@@ -13,8 +13,7 @@ material_parameter:
   rho_f : 1.0e+3
   mu_f : 1.0e-3
 source_data:
-  source_expression : "A*sin(2*pi*t*f)"
-  source_file : ../data/baladont_tot_inflow_series.csv
+  source_file : data/baladont_tot_inflow_series.csv
   source_params:
     A : 9000.0e-9 # max inflow according to Baledont,2014
     f : 1.0

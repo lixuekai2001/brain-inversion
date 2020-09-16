@@ -1,13 +1,17 @@
 
 import numpy as np
-idealized_simulations = {"ideal_brain_3D_Ncoarse":"stdBrainSim",
+idealized_simulations = {"ideal_brain_3D_Ncoarse":"sinusBrainSim",
+                         "ideal_brain_3D_Ncoarse":"baladontBrainSim",
                          #"ideal_brain_3D_Nmid":"stdBrainSim"
                          }
-real_brain_simulations = {"MRIExampleSegmentation_Nvcoarse":"stdBrainSim",
-                          "MRIExampleSegmentation_Ncoarse":"stdBrainSim",
-                          "MRIExampleSegmentation_Nmid":"stdBrainSim",
+real_brain_simulations = {"MRIExampleSegmentation_Nvcoarse":"sinusBrainSim",
+                          "MRIExampleSegmentation_Ncoarse":"sinusBrainSim",
+                          "MRIExampleSegmentation_Ncoarse":"baladontBrainSim",
+                          "MRIExampleSegmentation_Nmid":"baladontBrainSim",
                           #"MRIExampleSegmentation_Nfine":"stdBrainSim",
                           }
+
+sing_bind = "--bind $USERWORK:$USERWORK --bind $SCRATCH:/tmp/ "
 
 
 ruleorder: generateMeshFromStl > generateMeshFromCSG
@@ -29,7 +33,10 @@ def estimate_ressources(wildcards, input, attempt):
             mem = int(min(res[2]*1.3**(attempt -1), 184000))
             break
     nodes = int(np.ceil(cpus/40))
-    return {"mem_mb":mem, "cpus":cpus, "nodes":nodes}
+    tot_minutes = cpus*5
+    mins = tot_minutes%60
+    hours = tot_minutes//60
+    return {"mem_mb":mem, "cpus":cpus, "nodes":nodes, "time":f"0{hours}:{mins}:00"}
 
 
 rule all:
@@ -74,17 +81,19 @@ rule runBrainSim:
         mem_mb=lambda wildcards, input, attempt: estimate_ressources(wildcards, input, attempt)["mem_mb"],
         ntasks=lambda wildcards, input, attempt: estimate_ressources(wildcards, input, attempt)["cpus"],
         input_mem_mb=lambda wildcards, input, attempt: int(input.size_mb),
-        time="01:00:00"
+        time=lambda wildcards, input, attempt: estimate_ressources(wildcards, input, attempt)["time"],
     shell:
         """
         mpirun --bind-to core -n {resources.ntasks} \
         /usr/bin/time -v \
-        singularity exec --bind $SCRATCH:/tmp/ {params.sing_image} \
+        singularity exec \
+        {sing_bind} \
+        {params.sing_image} \
+        export  OPENBLAS_NUM_THREADS=4 && \
         python3 scripts/runFluidPorousBrainSim.py \
         -c {input.config} \
         -m {input.meshfile} \
-        -o {output.outfile} \
-         > {log} && \
+        -o {output.outfile} && \
         cp {input.config} {output.config}
         """
 
@@ -102,7 +111,9 @@ rule extractBoundaries:
     shell:
         """
         /usr/bin/time -v \
-        singularity exec {params.sing_image} \
+        singularity exec \
+        {sing_bind} \
+        {params.sing_image} \
         python3 scripts/extractSubdomains.py \
         meshes/{wildcards.mesh}/{wildcards.mesh}.xdmf
         """
@@ -122,7 +133,9 @@ rule generateMeshFromStl:
     shell:
         """
         /usr/bin/time -v \
-        singularity exec {params.sing_image} \
+        singularity exec \
+        {sing_bind} \
+        {params.sing_image} \
         python3 scripts/VolFromStlSVMTK.py \
         {input.config} \
         {output.meshfile} && \
@@ -142,7 +155,9 @@ rule generateMeshFromCSG:
     shell:
         """
         /usr/bin/time -v \
-        singularity exec {params.sing_image} \
+        singularity exec \
+        {sing_bind} \
+        {params.sing_image} \
         python3 scripts/generateIdealizedBrainMesh.py \
         -c {input.config} -o {output.meshfile}
         """
@@ -159,4 +174,22 @@ rule postprocess:
         notebook="results/{mesh}_{sim_name}/plots/postnb.ipynb"
     notebook:
         "notebooks/PostProcessBrainSim.ipynb"
+
+rule makeMovies:
+    input:
+        sim_results="results/{mesh}_{sim_name}/results.xdmf",
+        subdomain_file="meshes/{mesh}/{mesh}.xdmf",
+        sim_config_file="results/{mesh}_{sim_name}/config.yml"
+    output:
+        "results/{mesh}_{sim_name}/movies/movieflag.txt"
+    params:
+        sing_image="~/sing_images/biotstokes.simg"
+    shell:
+        """
+        singularity exec {params.sing_image} \
+        python3 scripts/makeMovies.py \
+        config_files/postprocess.yml \
+        results/{mesh}_{sim_name}/movies && \
+        touch results/{mesh}_{sim_name}/movies/movieflag.txt
+        """
 
