@@ -1,0 +1,7 @@
+name : VentricleFlow
+camera_pos : [ [0.2, 0.15, -0.01], [0, 0, 0], [0.0, 0.0, 1.0] ]
+fps : 5
+interpolate_frames : 1
+scenes:
+  - { var : u , mesh_parts : ventricular_system, arrow : True, vec_scale : 1, static : {color: yellow} }
+  - { var : pF , mesh_parts : ventricular_system, static : {cmap: balance, opacity : 0.5, scalar_bar : left, clim : global} }

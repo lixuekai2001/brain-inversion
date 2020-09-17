@@ -1,0 +1,7 @@
+name : PressureEvolutionSagittal
+camera_pos : [ [0.4 , 0, 0], [0, 0, 0], [0, 0, 1] ]
+fps : 5
+interpolate_frames : 5
+scenes:
+  - { var : pF , mesh_parts : all_fluid, static : {cmap: balance, opacity : 0.8, scalar_bar : left, clim : global} }
+  - { var : phi , mesh_parts : ["parenchyma"], static : {cmap: balance, opacity : 0.8, scalar_bar : right, clim : global} }
