@@ -26,4 +26,5 @@ def get_source_expression(source_conf, mesh, subdomains,
         
         values = np.interp(times, t, inflow, period = t[-1])
         g_source = getArrayExpression(values)
+        g.f = 1/t[-1]
     return g_source

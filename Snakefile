@@ -11,7 +11,9 @@ real_brain_simulations = {"MRIExampleSegmentation_Nvcoarse":"sinusBrainSim",
                           #"MRIExampleSegmentation_Nfine":"stdBrainSim",
                           }
 
-sing_bind = "--bind $USERWORK:$USERWORK --bind $SCRATCH:/tmp/ "
+movies = ["VentricleFlow", "PressureEvolutionSagittal"]
+
+sing_bind = "--bind $USERWORK:$USERWORK  --bind $SCRATCH:/tmp/ "
 
 
 ruleorder: generateMeshFromStl > generateMeshFromCSG
@@ -33,7 +35,7 @@ def estimate_ressources(wildcards, input, attempt):
             mem = int(min(res[2]*1.3**(attempt -1), 184000))
             break
     nodes = int(np.ceil(cpus/40))
-    tot_minutes = cpus*5
+    tot_minutes = cpus*10 # *(2**(attempt - 1))
     mins = tot_minutes%60
     hours = tot_minutes//60
     return {"mem_mb":mem, "cpus":cpus, "nodes":nodes, "time":f"0{hours}:{mins}:00"}
@@ -44,6 +46,12 @@ rule all:
         [f"results/{mesh}_{sim_name}/results.xdmf" for mesh, sim_name in idealized_simulations.items()],
         [f"results/{mesh}_{sim_name}/results.xdmf" for mesh, sim_name in real_brain_simulations.items()]
 
+rule all_movies:
+    input:
+        expand("results/{sim}/movies/{movies}.mp4", movies=movies,
+                sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
+        expand("results/{sim}/movies/{movies}.mp4", movies=movies,
+                sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
 
 rule all_ideal:
     input:
@@ -56,7 +64,8 @@ rule all_real:
 
 rule all_meshes:
     input:
-        [f"meshes/{mesh_name}/{mesh_name}.xdmf" for mesh_name in list(idealized_simulations.keys()) + list(real_brain_simulations.keys())]
+        [f"meshes/{mesh_name}/{mesh_name}.xdmf" for mesh_name in list(idealized_simulations.keys())],
+        [f"meshes/{mesh_name}/{mesh_name}.xdmf" for mesh_name in list(real_brain_simulations.keys())]
 
 rule ideal_meshes:
     input:
@@ -84,12 +93,10 @@ rule runBrainSim:
         time=lambda wildcards, input, attempt: estimate_ressources(wildcards, input, attempt)["time"],
     shell:
         """
-        mpirun --bind-to core -n {resources.ntasks} \
-        /usr/bin/time -v \
+        mpirun --bind-to core -n {resources.ntasks} /usr/bin/time -p \
         singularity exec \
         {sing_bind} \
         {params.sing_image} \
-        export  OPENBLAS_NUM_THREADS=4 && \
         python3 scripts/runFluidPorousBrainSim.py \
         -c {input.config} \
         -m {input.meshfile} \
@@ -175,21 +182,27 @@ rule postprocess:
     notebook:
         "notebooks/PostProcessBrainSim.ipynb"
 
-rule makeMovies:
+rule makeMovie:
     input:
         sim_results="results/{mesh}_{sim_name}/results.xdmf",
         subdomain_file="meshes/{mesh}/{mesh}.xdmf",
-        sim_config_file="results/{mesh}_{sim_name}/config.yml"
+        sim_config_file="results/{mesh}_{sim_name}/config.yml",
+        movie_config ="config_files/{movie_name}.yml"
+
     output:
-        "results/{mesh}_{sim_name}/movies/movieflag.txt"
+        "results/{mesh}_{sim_name}/movies/{movie_name}.mp4"
     params:
         sing_image="~/sing_images/biotstokes.simg"
+    log:
+        "results/{mesh}_{sim_name}/movies/{movie_name}_log"
     shell:
         """
-        singularity exec {params.sing_image} \
-        python3 scripts/makeMovies.py \
-        config_files/postprocess.yml \
-        results/{mesh}_{sim_name}/movies && \
-        touch results/{mesh}_{sim_name}/movies/movieflag.txt
+        singularity exec \
+        {sing_bind} \
+        {params.sing_image} \
+        bash -c "Xvfb :99 -screen 0 1024x768x24 & \
+        (python3 scripts/makeMovies.py \
+        {input.movie_config} \
+        {wildcards.mesh} {wildcards.sim_name} > {log} && exit 0 )"
         """
 

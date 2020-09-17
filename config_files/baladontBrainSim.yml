@@ -15,7 +15,6 @@ material_parameter:
 source_data:
   source_file : data/baladont_tot_inflow_series.csv
   source_params:
-    A : 9000.0e-9 # max inflow according to Baledont,2014
     f : 1.0
   scale_by_total_vol : True
   # : 1.0e-9 ## mm^3 to m^3
