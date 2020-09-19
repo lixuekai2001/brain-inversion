@@ -60,11 +60,12 @@ rule all_movies:
                 sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
 
 rule postP_all:
-    expand("results/{sim}/plots/ventr_CSF_flow.png",
-                sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
-    expand("results/{sim}/plots/ventr_CSF_flow.png",
-                sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
-         
+    input:
+        expand("results/{sim}/plots/ventr_CSF_flow.png",
+                    sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
+        expand("results/{sim}/plots/ventr_CSF_flow.png",
+                    sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
+            
 
 rule all_ideal:
     input:
