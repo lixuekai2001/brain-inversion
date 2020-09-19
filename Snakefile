@@ -8,12 +8,18 @@ real_brain_simulations = {"MRIExampleSegmentation_Nvcoarse":"sinusBrainSim",
                           "MRIExampleSegmentation_Ncoarse":"sinusBrainSim",
                           "MRIExampleSegmentation_Ncoarse":"baladontBrainSim",
                           "MRIExampleSegmentation_Nmid":"baladontBrainSim",
-                          #"MRIExampleSegmentation_Nfine":"stdBrainSim",
                           }
+sing_bind = ""
+
+env_params = {"singularity_bind": sing_bind}
 
 movies = ["VentricleFlow", "PressureEvolutionSagittal"]
 
-sing_bind = "--bind $USERWORK:$USERWORK  --bind $SCRATCH:/tmp/ "
+for name, param in env_params.items():
+    try:
+        param = config[name]
+    except KeyError:
+        pass
 
 
 ruleorder: generateMeshFromStl > generateMeshFromCSG
@@ -35,7 +41,7 @@ def estimate_ressources(wildcards, input, attempt):
             mem = int(min(res[2]*1.3**(attempt -1), 184000))
             break
     nodes = int(np.ceil(cpus/40))
-    tot_minutes = cpus*10 # *(2**(attempt - 1))
+    tot_minutes = cpus*8 * 1.5**(attempt -1)
     mins = tot_minutes%60
     hours = tot_minutes//60
     return {"mem_mb":mem, "cpus":cpus, "nodes":nodes, "time":f"0{hours}:{mins}:00"}
@@ -52,6 +58,13 @@ rule all_movies:
                 sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
         expand("results/{sim}/movies/{movies}.mp4", movies=movies,
                 sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
+
+rule postP_all:
+    expand("results/{sim}/plots/ventr_CSF_flow.png",
+                sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
+    expand("results/{sim}/plots/ventr_CSF_flow.png",
+                sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
+         
 
 rule all_ideal:
     input:
@@ -176,7 +189,7 @@ rule postprocess:
         subdomain_file="meshes/{mesh}/{mesh}.xdmf",
         sim_config_file="results/{mesh}_{sim_name}/config.yml"
     output:
-        "results/{mesh}_{sim_name}/plots/plot.pdf"
+        "results/{mesh}_{sim_name}/plots/ventr_CSF_flow.png"
     log:
         notebook="results/{mesh}_{sim_name}/plots/postnb.ipynb"
     notebook:

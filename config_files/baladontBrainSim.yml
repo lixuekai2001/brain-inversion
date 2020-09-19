@@ -19,10 +19,10 @@ source_data:
   scale_by_total_vol : True
   # : 1.0e-9 ## mm^3 to m^3
 spinal_outlet:
-  outlet_expression : P0*pow(10, outflow_vol/PVI)
+  outlet_expression : "P0*pow(10, outflow_vol / PVI)"
   outlet_params :
     PVI : 30.0e-6 # https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3221868/, 30 ml
-initial_pressure : 400
+initial_pressure : 250
 sliprate : 1.0
 linearize : True
 element_type : TH

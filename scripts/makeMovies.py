@@ -6,17 +6,16 @@ from braininversion.PostProcessing import (load_results_and_mesh,
 import os
 import numpy as np
 import yaml
+import sys
 
-
-ventricular_system = ["lateral_ventricles", "foramina", "aqueduct", "third_ventricle", "fourth_ventricle",
-                      "median_aperture"]
 
 def run(config, mesh_name, sim_name):
     print("load data ...") 
     mesh_grid, sim_config, mesh_config, sim_file, source_expr =  load_results_and_mesh(mesh_name, sim_name)
+    ventricular_system = [dom["name"] for dom in mesh_config["domains"] if dom["name"] not in ["csf","parenchyma"]]
     T = sim_config["T"]
     num_steps = sim_config["num_steps"]
-    movie_path = f"results/{mesh_name}_{sim_name}/movies"
+    movie_path = f"results/{mesh_name}_{sim_name}/movies/{config["name"]}"
     try:
         os.mkdir(movie_path)
     except FileExistsError:

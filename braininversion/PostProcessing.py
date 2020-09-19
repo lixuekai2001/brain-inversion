@@ -163,7 +163,7 @@ def create_movie(path, times, source_expr, plot_generator, fps, interpolate_fram
         source_expr.t=t
         source_expr.i=i
         source_series.append(source_expr(Point([0,0,0])) )
-    rep_idx = np.argwhere(np.array(times) > 1/source.f)[0][0]
+    rep_idx = np.argwhere(np.array(times) > 1/source_expr.f)[0][0]
     dt = times[1]
     frames = []
     for i,t in enumerate(times):
@@ -191,19 +191,13 @@ def create_movie(path, times, source_expr, plot_generator, fps, interpolate_fram
 
 def load_results_and_mesh(mesh_name, sim_name):
 
-    mesh_dir = f"meshes/{mesh_name}"
-    mesh_config_file = f"{mesh_dir}/{mesh_name}_config.yml"
-    mesh_file = f"{mesh_dir}/{mesh_name}.xdmf"
-
-    boundary_file = f"{mesh_dir}/{mesh_name}_boundaries.xdmf"
-    label_boundary_file = f"{mesh_dir}/{mesh_name}_label_boundaries.xdmf"
-    label_file = f"{mesh_dir}/{mesh_name}_labels.xdmf"
-
     sim_file_old = f"results/{mesh_name}_{sim_name}/results_old.xdmf"
     sim_file = f"results/{mesh_name}_{sim_name}/results.xdmf"
 
     movie_path = f"results/{mesh_name}_{sim_name}/movies/"
     sim_config_file = f"results/{mesh_name}_{sim_name}/config.yml"
+    mesh_config_file = f"meshes/{mesh_name}/{mesh_name}_config.yml"
+    label_file = f"meshes/{mesh_name}/{mesh_name}_labels.xdmf"
 
     with open(mesh_config_file) as conf_file:
         mesh_config = yaml.load(conf_file, Loader=yaml.FullLoader)
@@ -213,6 +207,28 @@ def load_results_and_mesh(mesh_name, sim_name):
         
     mesh_grid = pv.read(label_file)
 
+    T = sim_config["T"]
+    num_steps = sim_config["num_steps"]
+    dt = T/num_steps
+    times = np.linspace(0, T, num_steps + 1)
+    source_conf = sim_config["source_data"]
+    mesh, subdomain_marker, label_marker, boundary_marker, label_boundary_marker = load_meshes(mesh_name)
+
+    source_expr = get_source_expression(source_conf, mesh, subdomain_marker, porous_id, times)
+    
+    return mesh_grid, sim_config, mesh_config, sim_file_old, source_expr
+
+
+
+def load_meshes(mesh_name):
+    mesh_dir = f"meshes/{mesh_name}"
+    mesh_config_file = f"{mesh_dir}/{mesh_name}_config.yml"
+    mesh_file = f"{mesh_dir}/{mesh_name}.xdmf"
+
+    boundary_file = f"{mesh_dir}/{mesh_name}_boundaries.xdmf"
+    label_boundary_file = f"{mesh_dir}/{mesh_name}_label_boundaries.xdmf"
+    label_file = f"{mesh_dir}/{mesh_name}_labels.xdmf"
+
     infile_mesh = XDMFFile(mesh_file)
     mesh = Mesh()
     infile_mesh.read(mesh)
@@ -221,12 +237,19 @@ def load_results_and_mesh(mesh_name, sim_name):
     infile_mesh.read(subdomain_marker)#, "subdomains"
     infile_mesh.close()
 
-    T = sim_config["T"]
-    num_steps = sim_config["num_steps"]
-    dt = T/num_steps
-    times = np.linspace(0, T, num_steps + 1)
-    source_conf = sim_config["source_data"]
+    label_marker = MeshFunction("size_t", mesh, gdim, 0)
+    label_marker_infile = XDMFFile(label_file)
+    label_marker_infile.read(label_marker)
+    label_marker_infile.close()
 
-    source_expr = get_source_expression(source_conf, mesh, subdomain_marker, porous_id, times)
-    
-    return mesh_grid, sim_config, mesh_config, sim_file_old, source_expr
+    boundary_marker = MeshFunction("size_t", mesh, gdim - 1, 0)
+    boundary_infile = XDMFFile(boundary_file)
+    boundary_infile.read(boundary_marker)
+    boundary_infile.close()
+
+    label_boundary_marker = MeshFunction("size_t", mesh, gdim - 1, 0)
+    label_boundary_infile = XDMFFile(label_boundary_file)
+    label_boundary_infile.read(label_boundary_marker)
+    label_boundary_infile.close()
+
+    return mesh, subdomain_marker, label_marker, boundary_marker, label_boundary_marker
