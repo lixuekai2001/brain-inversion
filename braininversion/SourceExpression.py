@@ -23,8 +23,7 @@ def get_source_expression(source_conf, mesh, subdomains,
         inflow = data[:,1]*vol_scal
         if "scaling" in source_conf.keys():
             inflow *= source_conf["scaling"]
-        
         values = np.interp(times, t, inflow, period = t[-1])
         g_source = getArrayExpression(values)
-        g.f = 1/t[-1]
+        g_source.f = 1/t[-1]
     return g_source

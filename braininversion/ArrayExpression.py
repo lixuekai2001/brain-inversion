@@ -13,7 +13,7 @@ code = """
       public:
         npArray arr;
         int i = 0;
-        int f = 0;
+        double f = 0;
         
         ArrayExpression(npArray a) : dolfin::Expression(), arr(a) {}
 
