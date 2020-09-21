@@ -16,8 +16,8 @@ source_data:
   source_file : data/baladont_tot_inflow_series.csv
   source_params:
     f : 1.0
+  scaling : 1.0e-9 ## mm^3 to m^3
   scale_by_total_vol : True
-  # : 1.0e-9 ## mm^3 to m^3
 spinal_outlet:
   outlet_expression : "P0*pow(10, outflow_vol / PVI)"
   outlet_params :

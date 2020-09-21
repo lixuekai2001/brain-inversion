@@ -14,7 +14,6 @@ material_parameter:
   mu_f : 1.0e-3
 source_data:
   source_expression : "A*sin(2*pi*t*f)"
-  source_file : ../data/baladont_tot_inflow_series.csv
   source_params:
     A : 9000.0e-9 # max inflow according to Baledont,2014
     f : 1.0

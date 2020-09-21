@@ -15,7 +15,7 @@ def run(config, mesh_name, sim_name):
     ventricular_system = [dom["name"] for dom in mesh_config["domains"] if dom["name"] not in ["csf","parenchyma"]]
     T = sim_config["T"]
     num_steps = sim_config["num_steps"]
-    movie_path = f"results/{mesh_name}_{sim_name}/movies/{config["name"]}"
+    movie_path = f"results/{mesh_name}_{sim_name}/movies/{config['name']}"
     try:
         os.mkdir(movie_path)
     except FileExistsError:
