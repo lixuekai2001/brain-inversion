@@ -62,17 +62,20 @@ def extract_and_interpolate(mg, var, parts, idx, sim_file, mesh_config):
 
 def extract_data(mg, var, parts, idx, sim_file, mesh_config):
     mg = mg.copy()
-    grid = xdmf_to_unstructuredGrid(sim_file, variables=[var], idx=[idx])
-    # add new data to mesh
+    if isinstance(var, str):
+        var = [var]
+    if isinstance(idx, int):
+        idx = [idx]
+    grid = xdmf_to_unstructuredGrid(sim_file, variables=var, idx=idx)
+     # add new data to mesh
     for name, data in grid.point_arrays.items():
-        print()
         mg.point_arrays[name] = grid.point_arrays[name]
     #filter parts:
     dom_meshes= []
     for dom in mesh_config["domains"]:
         if dom["name"] in parts:
             dom_meshes.append(mg.threshold([dom["id"],dom["id"]],
-                                                  scalars="subdomains"))
+                                            scalars="subdomains"))
     merged = dom_meshes[0].merge(dom_meshes[1:])
     return merged
 
@@ -142,7 +145,7 @@ def plot_source_rgb_raw(source_series, times, t, size, dpi):
 
     # Do some plotting here
     ax = fig.add_subplot(111)
-    ax.plot(times, source_series)
+    ax.plot(times, source_series, "-*")
     ax.axvline(t, color="red")
     ax.set_xlabel("t in s")
     ax.set_ylabel("g in 1/s")
@@ -159,19 +162,25 @@ def plot_source_rgb_raw(source_series, times, t, size, dpi):
 # create video
 def create_movie(path, times, source_expr, plot_generator, fps, interpolate_frames):
     source_series = []
-    for i,t in enumerate(times):
-        source_expr.t=t
+    for i in range(len(times)):
+        #source_expr.t=t
         source_expr.i=i
-        source_series.append(source_expr(Point([0,0,0])) )
-    rep_idx = np.argwhere(np.array(times) > 1/source_expr.f)[0][0]
+        source_series.append(source_expr(Point([0,0,0])))
+    try:
+        rep_idx = np.argwhere(np.array(times) > 1/source_expr.f)[0][0]
+    except:
+        rep_idx = len(times) - 1
+    rep_idx = len(times) - 1
     dt = times[1]
-    frames = []
+    print(source_series)
+    mwriter = imageio.get_writer(f"{path}.mp4", fps=fps)
     for i,t in enumerate(times):
         print(f"rendering frame for time {t}...")
         for k in range(interpolate_frames):
             p,_= plot_generator(i + k/interpolate_frames)
             p.show(interactive=False, auto_close=False)
             img = p.screenshot(filename=f"{path}_{i}.png" ,transparent_background=True, return_img=True, window_size=None)
+            p.deep_clean()
             p.close()
             size = (4,3)
             dpi = 70
@@ -180,13 +189,11 @@ def create_movie(path, times, source_expr, plot_generator, fps, interpolate_fram
                                            size, dpi)
             x,y,z = miniplot.shape
             img[:x,:y,:] = miniplot
-            frames.append(img)
+            mwriter.append_data(img)
+
             if i==len(times) - 1:
                 break
 
-    mwriter = imageio.get_writer(f"{path}.mp4", fps=fps)
-    for frame in frames:
-        mwriter.append_data(frame)
     mwriter.close()
 
 def load_results_and_mesh(mesh_name, sim_name):

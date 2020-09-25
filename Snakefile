@@ -5,15 +5,16 @@ idealized_simulations = {#"ideal_brain_3D_Ncoarse":"sinusBrainSim",
                          #"ideal_brain_3D_Nmid":"stdBrainSim"
                          }
 real_brain_simulations = {"MRIExampleSegmentation_Nvcoarse":"sinusBrainSim",
+                          "MRIExampleSegmentation_Nvcoarse":"baladontBrainSim",
                           "MRIExampleSegmentation_Ncoarse":"sinusBrainSim",
                           "MRIExampleSegmentation_Ncoarse":"baladontBrainSim",
-                          #"MRIExampleSegmentation_Nmid":"baladontBrainSim",
-                          }
+                          "MRIExampleSegmentation_Nmid":"baladontBrainSim",
+                        }
 sing_bind = ""
 
 env_params = {"singularity_bind": sing_bind}
 
-movies = ["VentricleFlow", "PressureEvolutionSagittal"]
+movies = ["VentricularFlow", "SagittalPressure", "SagittalDisplacement"]
 
 try:
     sing_bind = config["singularity_bind"]
@@ -24,8 +25,8 @@ ruleorder: generateMeshFromStl > generateMeshFromCSG
 
 # input size in mb, num cpus, ram in mb
 ressource_from_inputsize = [(1, 4, 4000), (5, 4, 8000), (10, 12, 25000), (18, 12, 35000),
-                            (25, 16, 50000),
-                            (40, 20, 100000),(60, 28, 120000), (80, 40, 184000),
+                            (25, 12, 40000),
+                            (40, 20, 100000),(60, 32, 160000), (80, 40, 184000),
                             (100, 60, 300000)]
 
 
@@ -39,7 +40,7 @@ def estimate_ressources(wildcards, input, attempt):
             mem = int(min(res[2]*1.3**(attempt -1), 184000))
             break
     nodes = int(np.ceil(cpus/40))
-    tot_minutes = int(cpus*4 * 1.5**(attempt -1))
+    tot_minutes = int(cpus*5 * 1.5**(attempt -1))
     mins = tot_minutes%60
     hours = tot_minutes//60
     return {"mem_mb":mem, "cpus":cpus, "nodes":nodes, "time":f"0{hours}:{mins}:00"}
@@ -47,14 +48,20 @@ def estimate_ressources(wildcards, input, attempt):
 
 rule all:
     input:
-        [f"results/{mesh}_{sim_name}/results.xdmf" for mesh, sim_name in idealized_simulations.items()],
-        [f"results/{mesh}_{sim_name}/results.xdmf" for mesh, sim_name in real_brain_simulations.items()]
+        expand("results/{sim}/movies/{movies}/{movies}.mp4", movies=movies,
+                sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
+        expand("results/{sim}/movies/{movies}/{movies}.mp4", movies=movies,
+                sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
+        expand("results/{sim}/plots/ventr_CSF_flow.png",
+                    sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
+        expand("results/{sim}/plots/ventr_CSF_flow.png",
+                    sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
 
 rule all_movies:
     input:
-        expand("results/{sim}/movies/{movies}.mp4", movies=movies,
+        expand("results/{sim}/movies/{movies}/{movies}.mp4", movies=movies,
                 sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
-        expand("results/{sim}/movies/{movies}.mp4", movies=movies,
+        expand("results/{sim}/movies/{movies}/{movies}.mp4", movies=movies,
                 sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
 
 rule postP_all:
@@ -189,6 +196,8 @@ rule postprocess:
         sim_config_file="results/{mesh}_{sim_name}/config.yml"
     output:
         "results/{mesh}_{sim_name}/plots/ventr_CSF_flow.png"
+    params:
+        sing_image="~/sing_images/biotstokes.simg"
     shell:
          """
         singularity exec \
@@ -204,21 +213,16 @@ rule makeMovie:
         sim_results="results/{mesh}_{sim_name}/results.xdmf",
         subdomain_file="meshes/{mesh}/{mesh}.xdmf",
         sim_config_file="results/{mesh}_{sim_name}/config.yml",
-        movie_config ="config_files/{movie_name}.yml"
-
     output:
-        "results/{mesh}_{sim_name}/movies/{movie_name}.mp4"
+        "results/{mesh}_{sim_name}/movies/{movie_name}/{movie_name}.mp4"
     params:
         sing_image="~/sing_images/biotstokes.simg"
-    log:
-        "results/{mesh}_{sim_name}/movies/{movie_name}_log"
     shell:
         """
         singularity exec \
         {sing_bind} \
         {params.sing_image} \
-        xvfb-run -a python3 scripts/makeMovies.py \
-        {input.movie_config} \
+        xvfb-run -a python3 scripts/make{wildcards.movie_name}Movie.py \
         {wildcards.mesh} {wildcards.sim_name}
         """
 

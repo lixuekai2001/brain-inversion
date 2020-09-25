@@ -36,7 +36,7 @@ code = """
     
     """
 
-def getArrayExpression(array, degree=1):
+def getArrayExpression(array, degree=0):
     return CompiledExpression(compile_cpp_code(code).ArrayExpression(array), degree=degree)
 
 

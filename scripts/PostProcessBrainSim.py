@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 from fenics import *
 from multiphenics import *
 import numpy as np
@@ -35,13 +32,12 @@ fluid_id = 2
 interface_id = 1
 spinal_outlet_id = 3
 mmHg2Pa = 132.32
+m3tomL = 1e6
 
 with open(mesh_config_file) as conf_file:
     mesh_config = yaml.load(conf_file, Loader=yaml.FullLoader)
 with open(sim_config_file) as conf_file:
     sim_config = yaml.load(conf_file, Loader=yaml.FullLoader)  
-#with open(config_file_path) as conf_file:
-#    postP_config = yaml.load(conf_file, Loader=yaml.FullLoader)
 
 mesh, subdomain_marker, label_marker, boundary_marker, label_boundary_marker = load_meshes(mesh_name)
 gdim = mesh.geometric_dimension()
@@ -56,9 +52,6 @@ probes = mesh_config["probes"]
 flatprobes = dict(**probes["sas"],**probes["parenchyma"],**probes["ventricular_system"])
 domains = mesh_config["domains"]
 name_to_label = {dom["name"]:dom["id"] for dom in domains}
-
-
-# In[4]:
 
 
 class subdomainFilter(UserExpression):
@@ -84,9 +77,6 @@ por_filter = interpolate(por_filter, DG)
 por_filter.set_allow_extrapolation(True)
 
 
-# In[5]:
-
-
 V = VectorFunctionSpace(mesh, "CG", 2)
 W = FunctionSpace(mesh, "CG", 1)
 
@@ -96,9 +86,6 @@ variables = {"pF":"fluid", "pP":"porous", "phi":"porous",
              "d":"porous", "u":"fluid"}
 
 infile = XDMFFile(sim_file)
-
-
-# In[6]:
 
 
 results = {n:[] for n in names}
@@ -115,10 +102,6 @@ for n, space in names.items():
 
 infile.close()
 
-
-# In[7]:
-
-
 for vec in ["u","d"]:
     results[f"{vec}_tot"] = {}
     for i in range(num_steps + 1):
@@ -126,18 +109,18 @@ for vec in ["u","d"]:
         results[f"{vec}_tot"][i] = project(sqrt(inner(v,v)), W)
 
 
-# In[8]:
-
-
 def plot_scalar_time_evolution(point_var_list, mesh_config, results, ylabel,times, scale=1):
     plt.figure(figsize=(10,8))
+    plotname = f"pressure_" 
     for (var, p_name) in point_var_list:
         data = extract_cross_section(results[var], [Point(flatprobes[p_name])]).flatten()*scale
         plt.plot(times, data,"-*" , label=f"{var} : {p_name}")
+        plotname += p_name + "_"
     plt.legend()
     plt.grid()
     plt.xlabel("t [s]")
     plt.ylabel(ylabel)
+    plt.savefig(f"{plot_dir}/{plotname[:-1]}.png")
 
 ylabel = "p in mmHg"
 point_var_list = [("pF","front_sas"),("phi","front_parenchyma"),("pF","lateral_ventricles")]
@@ -146,8 +129,6 @@ plot_scalar_time_evolution(point_var_list, mesh_config, results, ylabel, times, 
 point_var_list = [("pF","back_sas"),("phi","back_parenchyma"),("pF","lateral_ventricles")]
 plot_scalar_time_evolution(point_var_list, mesh_config, results, ylabel, times, scale=1/mmHg2Pa)
 
-
-# In[9]:
 
 
 plotname = "vel_aqueduct"
@@ -160,7 +141,6 @@ data = data[:,0,:]
 tot = np.linalg.norm(data, axis=1)
 for i, comp in enumerate(["x","y","z"]):
     plt.plot(times, data[:,i], "-*", label=f"u_{comp}")
-
 plt.legend()
 plt.grid()
 plt.xlabel("t [s]")
@@ -168,15 +148,29 @@ plt.ylabel("u in mm/s")
 plt.title(title)
 plt.savefig(f"{plot_dir}/{plotname}.png")
 
-
-# In[10]:
+# plot source in inflow
+plotname = "source_inflow"
+source_inflow = []
+for i in range(num_steps + 1):
+    source_expr.i = i
+    source_inflow.append(source_expr(Point([0,0,0])))
+source_inflow = np.array(source_inflow)
+dx_par = Measure("dx", domain=mesh, subdomain_data=label_marker, subdomain_id = name_to_label["parenchyma"])
+parenchyma_vol = assemble(Constant(1)*dx_par)
+plt.figure(figsize=(10,8))
+plt.plot(times, source_inflow*parenchyma_vol*m3tomL, "-*")
+plt.grid()
+plt.xlabel("t in s")
+plt.ylabel("inflow [ml/s]")
+plt.title("net blood inflow")
+plt.savefig(f"{plot_dir}/{plotname}.png")
 
 
 # compute pressure gradient
-plotname = "pressure_gradient"
-
 gradient_ventr_probe_point = "lateral_ventricles"
 gradient_sas_probe_point = "top_sas"
+plotname = f"pressure_gradient_{gradient_ventr_probe_point}_{gradient_sas_probe_point}"
+
 ventr_point = flatprobes[gradient_ventr_probe_point]
 sas_point = flatprobes[gradient_sas_probe_point]
 ventr_data = extract_cross_section(results["pF"], [Point(ventr_point)]).flatten()/mmHg2Pa
@@ -197,7 +191,6 @@ plt.ylabel("pressure grad in mmHg/m")
 plt.savefig(f"{plot_dir}/{plotname}.png")
 
 
-# In[31]:
 
 
 # plot cross section through the domain
@@ -252,20 +245,10 @@ plot_cross_section(p1, p2, n_crossP, ["pF", "phi", "pP"],
                    results, time_indices, filter_dict, scale=1/mmHg2Pa)
 
 
-# In[ ]:
-
-
-
-
-
-# In[12]:
-
-
 # compute outflow into spinal coord 
 ds_outflow = Measure("ds", domain=mesh, subdomain_data=boundary_marker, subdomain_id=spinal_outlet_id)
 n = FacetNormal(mesh)
 
-m3tomL = 1e6
 spinal_outflow = np.array([assemble(dot(u,n)*ds_outflow) for u in results["u"]])
 plt.figure(figsize=(10,8))
 plt.plot(times, spinal_outflow*m3tomL, label="outflow into spinal coord")
@@ -275,9 +258,6 @@ plt.xlabel("time in s")
 plt.ylabel("flowrate in mL/ s")
 plt.title("CSF outflow into spinal coord")
 plt.savefig(f"{plot_dir}/spinal_out_CSF.png")
-
-
-# In[13]:
 
 
 cum_outflow = np.cumsum(spinal_outflow)*dt
@@ -344,7 +324,7 @@ plt.figure(figsize=(10,8))
 for name, flow in internal_flows.items():
     plt.plot(times, np.cumsum(flow)*dt*m3tomL, label=name)
     
-plt.plot(times, cum_outflow*m3tomL/50, label="cum spinal outflow (scaled: 1/50)")
+plt.plot(times, cum_outflow*dt*m3tomL/50, label="cum spinal outflow (scaled: 1/50)")
 
 plt.legend()
 plt.grid()

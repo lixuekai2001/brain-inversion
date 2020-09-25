@@ -21,9 +21,9 @@ def get_source_expression(source_conf, mesh, subdomains,
         data = np.loadtxt(source_conf["source_file"], delimiter=",")
         t = data[:,0]
         inflow = data[:,1]*vol_scal
-        if "scaling" in source_conf.keys():
-            inflow *= source_conf["scaling"]
         values = np.interp(times, t, inflow, period = t[-1])
+        values *= source_conf["scaling"]
+        values -= values.mean()
         g_source = getArrayExpression(values)
         g_source.f = 1/t[-1]
     return g_source
