@@ -7,7 +7,11 @@ __default__:
   job-name : "{rule}.{wildcards}"
   output : "logs/saga/{rule}.{wildcards}.out"
   error : "logs/saga/{rule}.{wildcards}.err"
+  gres : "localscratch:0G"
 
 makeMovie:
   mem : 8G
   time : 01:00:00
+
+runBrainSim:
+  gres : "localscratch:100G"

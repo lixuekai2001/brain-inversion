@@ -26,7 +26,7 @@ ruleorder: generateMeshFromStl > generateMeshFromCSG
 # input size in mb, num cpus, ram in mb
 ressource_from_inputsize = [(1, 4, 4000), (5, 4, 8000), (10, 12, 25000), (18, 12, 35000),
                             (25, 12, 40000),
-                            (40, 20, 100000),(60, 32, 160000), (80, 40, 184000),
+                            (40, 20, 100000),(60, 24, 100000), (80, 40, 184000),
                             (100, 60, 300000)]
 
 
