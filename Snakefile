@@ -52,9 +52,13 @@ rule all:
                 sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
         expand("results/{sim}/movies/{movies}/{movies}.mp4", movies=movies,
                 sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
-        expand("results/{sim}/plots/ventr_CSF_flow.png",
+        expand("results/{sim}/flow_plots/ventr_CSF_flow.png",
                     sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
-        expand("results/{sim}/plots/ventr_CSF_flow.png",
+        expand("results/{sim}/flow_plots/ventr_CSF_flow.png",
+                    sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
+        expand("results/{sim}/pressure_plots/pressure_gradient_lateral_ventricles_top_sas.png",
+                    sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
+        expand("results/{sim}/pressure_plots/pressure_gradient_lateral_ventricles_top_sas.png",
                     sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
 
 rule all_movies:
@@ -189,13 +193,13 @@ rule generateMeshFromCSG:
         """
    
 
-rule postprocess:
+rule makePressurePlots:
     input:
         sim_results="results/{mesh}_{sim_name}/results.xdmf",
         subdomain_file="meshes/{mesh}/{mesh}.xdmf",
         sim_config_file="results/{mesh}_{sim_name}/config.yml"
     output:
-        "results/{mesh}_{sim_name}/plots/ventr_CSF_flow.png"
+        "results/{mesh}_{sim_name}/pressure_plots/pressure_gradient_lateral_ventricles_top_sas.png"
     params:
         sing_image="~/sing_images/biotstokes.simg"
     shell:
@@ -203,7 +207,25 @@ rule postprocess:
         singularity exec \
         {sing_bind} \
         {params.sing_image} \
-        xvfb-run -a python3 scripts/PostProcessBrainSim.py \
+        xvfb-run -a python3 scripts/pressurePlots.py \
+        {wildcards.mesh} {wildcards.sim_name}
+        """
+
+rule makeFlowPlots:
+    input:
+        sim_results="results/{mesh}_{sim_name}/results.xdmf",
+        subdomain_file="meshes/{mesh}/{mesh}.xdmf",
+        sim_config_file="results/{mesh}_{sim_name}/config.yml"
+    output:
+        "results/{mesh}_{sim_name}/flow_plots/cum_CSF_flow.png"
+    params:
+        sing_image="~/sing_images/biotstokes.simg"
+    shell:
+         """
+        singularity exec \
+        {sing_bind} \
+        {params.sing_image} \
+        xvfb-run -a python3 scripts/flowPlots.py \
         {wildcards.mesh} {wildcards.sim_name}
         """
 
