@@ -25,9 +25,16 @@ ENV PETSC_VERSION=3.12.3 \
     TRILINOS_VERSION=12.10.1 \
     MPICH_VERSION=3.3 \
     MPICH_DIR=/opt/mpich \
+    NUM_THREADS=40 \
     #OPENBLAS_NUM_THREADS=1 \
     #OPENBLAS_VERBOSE=0 \
     FENICS_PREFIX=$FENICS_HOME/local
+
+#RUN git clone -q --branch=develop git://github.com/xianyi/OpenBLAS.git && \
+#    (cd OpenBLAS \
+#    && make DYNAMIC_ARCH=1 NO_AFFINITY=1 NUM_THREADS=40 TARGET=SKYLAKEX USE_OPENMP=1 \
+#    && make install)
+
 
 # Non-Python utilities and libraries
 RUN apt-get -qq update && \
@@ -55,10 +62,10 @@ RUN apt-get -qq update && \
         libboost-timer-dev \
         libeigen3-dev \
         libfreetype6-dev \
-        liblapack-dev \
+        #liblapack-dev \
         #libopenmpi-dev \
         #libmpich-dev \
-        libopenblas-dev \
+        #libopenblas-openmp-dev \
         libpcre3-dev \
         libpng-dev \
         #libhdf5-dev \
@@ -77,6 +84,31 @@ RUN apt-get -qq update && \
     git lfs install && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+#RUN sudo update-alternatives --config libblas.so.3
+
+#RUN cd /tmp && \
+#    wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB && \
+#    apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB&& \
+
+
+    ## all products:
+    #sudo wget https://apt.repos.intel.com/setup/intelproducts.list -O /etc/apt/sources.list.d/intelproducts.list
+    ## just MKL
+#    sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list' && \
+    ## other (TBB, DAAL, MPI, ...) listed on page
+    #sudo dpkg --add-architecture i386 && \
+#    apt-get update && \
+#    apt-get -y install intel-mkl-2020.0-088 && \
+    #update-alternatives --install /usr/lib/x86_64-linux-gnu/libblas.so     libblas.so-x86_64-linux-gnu      /opt/intel/mkl/lib/intel64/libmkl_rt.so 150 && \
+    #update-alternatives --install /usr/lib/x86_64-linux-gnu/libblas.so.3   libblas.so.3-x86_64-linux-gnu    /opt/intel/mkl/lib/intel64/libmkl_rt.so 150 && \
+    #update-alternatives --install /usr/lib/x86_64-linux-gnu/liblapack.so   liblapack.so-x86_64-linux-gnu    /opt/intel/mkl/lib/intel64/libmkl_rt.so 150 && \
+    #update-alternatives --install /usr/lib/x86_64-linux-gnu/liblapack.so.3 liblapack.so.3-x86_64-linux-gnu  /opt/intel/mkl/lib/intel64/libmkl_rt.so 150 && \
+
+#    echo "/opt/intel/lib/intel64"     >  /etc/ld.so.conf.d/mkl.conf && \
+#    echo "/opt/intel/mkl/lib/intel64" >> /etc/ld.so.conf.d/mkl.conf && \
+#    ldconfig && \
+#    echo "MKL_THREADING_LAYER=GNU" >> /etc/environment
 
 # Install Python3 based environment
 RUN apt-get -qq update && \
@@ -115,6 +147,12 @@ ENV PATH=$MPICH_DIR/bin:$PATH  \
     SINGULARITY_MPICH_DIR=$MPICH_DIR  \
     SINGULARITYENV_APPEND_PATH=$MPICH_DIR/bin  \
     SINGULAIRTYENV_APPEND_LD_LIBRARY_PATH=$MPICH_DIR/lib 
+
+
+RUN git clone -q --branch=develop git://github.com/xianyi/OpenBLAS.git && \
+    (cd OpenBLAS \
+    && make PREFIX=/usr/local/openblas DYNAMIC_ARCH=1 NUM_THREADS=40 USE_THREADS=1 USE_OPENMP=1 \
+    && make install && ldconfig)
     
 # Install PETSc from source
 RUN apt-get -qq update && \
@@ -126,20 +164,25 @@ RUN apt-get -qq update && \
     ./configure --COPTFLAGS="-O2" \
                 --CXXOPTFLAGS="-O2" \
                 --FOPTFLAGS="-O2" \
+                #--with-blaslapack-dir=$MKLROOT \
+                --with-blaslapack-dir=/opt/OpenBLAS/lib \
                 --with-mpi-dir=$MPICH_DIR \
                 --with-fortran-bindings=no \
+                #--download-fblaslapack=1 \
+                #--download-openblas-make-options="NUM_THREADS=40 USE_THREAD=1 TARGET=SKYLAKEX USE_OPENMP=1" \
                 --with-debugging=0 \
                 --with-openmp \
                 --download-hwloc \
                 #--download-openmpi \
                 #--download-mpich \
-                --download-blacs \
+                #--download-blacs \
                 #--download-hypre \
+                 --download-scalapack \
                 --download-metis \
                 --download-mumps \
                 --download-parmetis \
                 --download-ptscotch \
-                --download-scalapack \
+                #--download-scalapack \
                 #--download-spai \
                 #--download-suitesparse \
                 #--download-superlu \
@@ -215,3 +258,4 @@ RUN apt-get -qq update && \
     cat /dev/null > $FENICS_HOME/WELCOME
 
 ENV PYTHONPATH=/usr/local/lib/python3/dist-packages/gmsh-4.6.0-Linux64-sdk/lib/
+
