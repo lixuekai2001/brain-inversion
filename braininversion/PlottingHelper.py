@@ -123,11 +123,7 @@ def extract_cross_section_from_list(functions, points,filter_function=None):
         filter_function = Expression("1", degree=0)
     for k, p in enumerate(points):
         for i,f in enumerate(functions):
-            try:
-                values[i, k, :] = f(p)
-            except RuntimeError:
-                values[i, k, :] = np.repeat(np.nan, value_dim)
-            values[i, k, :] = values[i, k, :]*filter_function(p)
+            values[i, k, :] = f(p)*filter_function(p)
     return values
 
 def extract_cross_section_from_expression(expression, points, times):
