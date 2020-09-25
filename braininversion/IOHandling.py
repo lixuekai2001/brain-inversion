@@ -79,10 +79,14 @@ def xdmf_to_unstructuredGrid(filename, idx=None, variables=None):
     #print(f"{n} cells with {p} points per cell detected")
     offset = np.arange(start=0, stop=n*(p+1), step=p+1)
     grid = pv.UnstructuredGrid(offset, c, np.repeat(cell_type, n), points)
-    for i, p_data in enumerate(point_dataset):
+    for i, p_data in enumerate(point_dataset):   
+        if len(point_dataset)==1:
+            array_name = "{name}"  
+        else:
+            array_name = "{name}_{idx}"  
         for name, data in p_data.items():
-            grid.point_arrays[f"{name}"] = data
+            grid.point_arrays[array_name.format(name=name, idx=i)] = data
     for i, c_data in enumerate(cell_dataset):
         for name, data in c_data.items():
-            grid.cell_arrays[f"{name}"] = data
+            grid.cell_arrays[array_name.format(name=name, idx=i)] = data
     return grid

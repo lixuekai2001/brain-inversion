@@ -13,7 +13,7 @@ code = """
       public:
         npArray arr;
         int i = 0;
-        int f = 0;
+        double f = 0;
         
         ArrayExpression(npArray a) : dolfin::Expression(), arr(a) {}
 
@@ -36,7 +36,7 @@ code = """
     
     """
 
-def getArrayExpression(array, degree=1):
+def getArrayExpression(array, degree=0):
     return CompiledExpression(compile_cpp_code(code).ArrayExpression(array), degree=degree)
 
 
