@@ -1,1 +1,1 @@
-singularity_bind : "--bind $USERWORK:$USERWORK  --bind $SCRATCH:/tmp/ "
+singularity_bind : "--bind $USERWORK:$USERWORK  --bind $LOCALSCRATCH:/tmp/ "

@@ -310,7 +310,7 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
         time = (i + 1)*dt.values()[0]
         for expr in time_dep_expr:
             expr.t = time
-            expr.i = i
+            expr.i = i + 1
             expr.outflow_vol = outflow
                 
         if linearize:

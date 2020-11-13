@@ -81,13 +81,6 @@ if __name__=="__main__":
 
     infile = XDMFFile(sim_file)
 
-    results = {n:[] for n in names}
-    for n in names:
-        for i in range(num_steps + 1):
-            f = Function(V)
-            infile.read_checkpoint(f, n, i)
-            results[n].append(f)
-    infile.close()
 
     # plot source in inflow
 
@@ -106,6 +99,19 @@ if __name__=="__main__":
     plt.ylabel("inflow [ml/s]")
     plt.title("net blood inflow")
     plt.savefig(f"{plot_dir}/{plotname}.png")
+
+    print("inflow plot created")
+
+
+    results = {n:[] for n in names}
+    for n in names:
+        for i in range(num_steps + 1):
+            f = Function(V)
+            infile.read_checkpoint(f, n, i)
+            results[n].append(f)
+    infile.close()
+
+    
 
     # aqueduct velocity
 
@@ -143,21 +149,21 @@ if __name__=="__main__":
 
     cum_outflow = np.cumsum(spinal_outflow)*dt
     plt.figure(figsize=(10,8))
-    plt.plot(times, cum_outflow*m3tomL, label="cumulative outflow into spinal coord")
+    plt.plot(times, cum_outflow*m3tomL, "-*", label="cumulative outflow")
     plt.legend()
     plt.grid()
     plt.xlabel("time in s")
     plt.ylabel("V in mL")
-    plt.title("cumulative CSF outflow into spinal coord")
+    plt.title("cumulative CSF outflow into spinal canal")
     plt.savefig(f"{plot_dir}/cum_spinal_out_CSF.png")
 
     flow_pairs = [("lateral_ventricles", "foramina"),
-             ("foramina", "third_ventricle"),
-             ("third_ventricle", "aqueduct"),
-             ("aqueduct", "fourth_ventricle"),
-             ("fourth_ventricle", "median_aperture"),
-              ("median_aperture", "csf"),
-             ]
+                #("foramina", "third_ventricle"),
+                ("third_ventricle", "aqueduct"),
+                #("aqueduct", "fourth_ventricle"),
+                ("fourth_ventricle", "median_aperture"),
+                #("median_aperture", "csf"),
+                ]
 
     internal_flows = {}
     for fp in flow_pairs:
@@ -167,8 +173,8 @@ if __name__=="__main__":
 
     plt.figure(figsize=(10,8))
     for name, flow in internal_flows.items():
-        plt.plot(times, flow*m3tomL, label=name)
-    plt.plot(times, spinal_outflow*m3tomL/50, label="spinal outflow (scaled: 1/50)")
+        plt.plot(times, flow*m3tomL, "-*", label=name)
+    #plt.plot(times, spinal_outflow*m3tomL, "-*", label="spinal outflow")
 
     plt.legend()
     plt.grid()
@@ -183,7 +189,7 @@ if __name__=="__main__":
     for name, flow in internal_flows.items():
         plt.plot(times, np.cumsum(flow)*dt*m3tomL, label=name)
         
-    plt.plot(times, cum_outflow*dt*m3tomL/50, label="cum spinal outflow (scaled: 1/50)")
+    #plt.plot(times, cum_outflow*dt*m3tomL/50, label="cum spinal outflow (scaled: 1/50)")
 
     plt.legend()
     plt.grid()

@@ -28,6 +28,7 @@ def mesh_from_surfaces(config, outfile):
 
     print("loading csf and parenchyma...")
     csf  = svm.Surface(csf_file)
+    #csf  = svm.Surface(parenchyma_file)
     parenchyma = svm.Surface(parenchyma_file)
 
     parenchyma.adjust_boundary(config["surface_processing"]["parenchyma"]["grow"])

@@ -31,7 +31,7 @@ def plot_scalar_time_evolution(point_var_list, mesh_config, results, ylabel,time
         plotname += p_name + "_"
     plt.legend()
     plt.grid()
-    plt.xlabel("t [s]")
+    plt.xlabel("t in s")
     plt.ylabel(ylabel)
     plt.savefig(f"{plot_dir}/{plotname[:-1]}.png")
 
@@ -140,6 +140,11 @@ if __name__=="__main__":
     plot_scalar_time_evolution(point_var_list, mesh_config, results,
                                ylabel, times, plot_dir, scale=1/mmHg2Pa)
 
+    point_var_list = [("pF","top_sas"),
+                      ("pF","lateral_ventricles")]
+    plot_scalar_time_evolution(point_var_list, mesh_config, results,
+                               ylabel, times, plot_dir, scale=1/mmHg2Pa)
+
     # compute pressure gradient
     gradient_ventr_probe_point = "lateral_ventricles"
     gradient_sas_probe_point = "top_sas"
@@ -159,7 +164,7 @@ if __name__=="__main__":
 
     #plt.legend()
     plt.grid()
-    plt.xlabel("t [s]")
+    plt.xlabel("t in s")
     plt.title(f"pressure gradient ({gradient_ventr_probe_point} - {gradient_sas_probe_point})")
     plt.ylabel("pressure grad in mmHg/m")
     plt.savefig(f"{plot_dir}/{plotname}.png")

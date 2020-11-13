@@ -179,7 +179,7 @@ def create_movie(path, times, source_expr, plot_generator, fps, interpolate_fram
         for k in range(interpolate_frames):
             p,_= plot_generator(i + k/interpolate_frames)
             p.show(interactive=False, auto_close=False)
-            img = p.screenshot(filename=f"{path}_{i}.png" ,transparent_background=True, return_img=True, window_size=None)
+            img = p.screenshot(transparent_background=True, return_img=True, window_size=None)
             p.deep_clean()
             p.close()
             size = (4,3)
@@ -190,7 +190,7 @@ def create_movie(path, times, source_expr, plot_generator, fps, interpolate_fram
             x,y,z = miniplot.shape
             img[:x,:y,:] = miniplot
             mwriter.append_data(img)
-
+            imageio.imwrite(f"{path}_{i:03d}.png", img)
             if i==len(times) - 1:
                 break
 
