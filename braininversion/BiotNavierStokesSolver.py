@@ -35,8 +35,14 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
                              time_dep_expr=(),
                              elem_type="mini",
                              sliprate=0.0,
-                             initial_pressure=0.0,
+                             initial_pF=Constant(0.0),
+                             initial_pP=Constant(0.0),
+                             initial_phi=Constant(0.0),
+                             initial_d=None,
+                             initial_u=None,
                              g_source=Constant(0.0),
+                             f_fluid=Constant(0.0),
+                             f_porous=Constant(0.0),
                              outlet_pressure=Constant(0.0),
                              move_mesh=False,
                              filename=None,
@@ -50,6 +56,9 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
     porous_id = 1
     spinal_outlet_id = 3
 
+    for expr in time_dep_expr:
+            expr.t = 0
+            expr.i = 0
 
     # porous parameter
     c = material_parameter["c"]
@@ -67,10 +76,11 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
     dt = Constant(T / num_steps)
 
     gamma = Constant(sliprate)
-    g = Constant([0.0]*gdim)
+    gravity = Constant([0.0]*gdim)
     f = Constant([0.0]*gdim)
 
     n = FacetNormal(mesh)("+")
+    #n = as_vector([1,0])
 
     # compute tangential vectors by hausdorfer formula
     #h1 = Max(n[0] - 1, n[0] +1)
@@ -116,13 +126,18 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
     v, qF, w, qP, psi = block_split(test)
     previous = BlockFunction(H)
     u_n, pF_n, d_n, pP_n, phi_n = block_split(previous)
+    
+    if initial_d is None:
+        initial_d = Constant([0.0]*gdim)
+    
+    if initial_u is None:
+        initial_u = Constant([0.0]*gdim)
 
-    #u_n.assign(interpolate(Constant([0.0]*gdim), H.sub(0)))
-    pF_n.assign(interpolate(Constant(initial_pressure), H.sub(1)))
-    #d_n.assign(interpolate(Constant([0.0]*gdim), H.sub(2)))
-    pP_n.assign(interpolate(Constant(initial_pressure), H.sub(3)))
-    phi_n.assign(interpolate(Constant(initial_pressure), H.sub(4)))
-    #pF_n.vector()[:] = initial_pressure
+    u_n.assign(interpolate(initial_u, H.sub(0)))
+    pF_n.assign(interpolate(initial_pF, H.sub(1)))
+    d_n.assign(interpolate(initial_d, H.sub(2)))
+    pP_n.assign(interpolate(initial_pP, H.sub(3)))
+    phi_n.assign(interpolate(initial_phi, H.sub(4)))
 
     previous.apply("from subfunctions")
 
@@ -143,6 +158,8 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
     def tang_interf(u,v):
         #return (dot(u("+"), tau1) + dot(u("+"), tau2))*(dot(v("+"), tau1) + dot(v("+"), tau2))*ds_Sig 
         #return dot(u("+"), tau1)*dot(v("+"), tau1)*ds_Sig + dot(u("+"), tau2)*dot(v("+"), tau2)*ds_Sig + inner(u,v)*Constant(0.0)*dxD
+        #tau = as_vector([0,1])
+        #return dot(u("+"), tau)* dot(v("+"),tau)*ds_Sig #+ inner(u,v)*Constant(0.0)*dxD
         return inner(proj_t(u("+")), proj_t(v("+")))*ds_Sig + inner(u,v)*Constant(0.0)*dxD
 
     # define forms
@@ -151,12 +168,6 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
                 + 2*mu_f*inner(eps(u), eps(v))*dxF \
                 + (gamma*mu_f/sqrt(kappa))*tang_interf(u,v)
 
-    if linearize:
-        def c_F(u,v):
-            return rho_f * dot(dot(u_n, nabla_grad(u)), v)*dxF
-    else:
-        def c_F(u,v):
-            return rho_f * dot(dot(u, nabla_grad(u)), v)*dxF
 
     def b_1_F(v, qF):
         return  -qF*div(v)*dxF
@@ -189,14 +200,14 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
         return (1.0/lmbda)*phi*psi*dxP
 
     def F_F(v):
-        return rho_f *dot(g, v)*dxF - dot(outlet_pressure*FacetNormal(mesh), v)*ds(spinal_outlet_id)
+        return rho_f*dot(f_fluid, v)*dxF - dot(outlet_pressure*FacetNormal(mesh), v)*ds(spinal_outlet_id)
 
     def F_P(w):
-        return rho_s*inner(f, w)*dxP
+        return rho_s*inner(f_porous, w)*dxP
 
     def G(qP):
-        return rho_f*inner(g, grad(qP))*dxP \
-                - rho_f*inner(g, n)*qP("+")*ds_Sig   + qP*Constant(0.0)*dxD \
+        return rho_f*inner(gravity, grad(qP))*dxP \
+                - rho_f*inner(gravity, n)*qP("+")*ds_Sig  + qP*Constant(0.0)*dxD \
                 + g_source*qP*dxP
 
     def F_F_n(v):
@@ -207,7 +218,7 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
 
     def G_n(qP):
         return G(qP) + (c + (alpha**2)/lmbda)*pP_n/dt*qP*dxP \
-            + b_4_Sig(d_n/dt, qP) - b_2_P(phi_n/dt, qP)
+            - b_4_Sig(d_n/dt, qP) - b_2_P(phi_n/dt, qP)
 
 
     # define system:
@@ -215,10 +226,10 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
     # order test: v, qF, w, qP, psi
 
 
-    lhs = [[ a_F(u,v)+c_F(u,v), b_1_F(v, pF), b_3_Sig(v, d/dt) , b_2_Sig(v, pP), 0                 ],
+    lhs = [[ a_F(u,v)      , b_1_F(v, pF), b_3_Sig(v, d/dt) , b_2_Sig(v, pP), 0                 ],
         [ b_1_F(u, qF)     ,  0          , 0                , 0             , 0                 ],
         [ b_3_Sig(u, w)    ,  0          , a_1_P(d,w)       , b_4_Sig(w, pP), b_1_P(w, phi)     ],
-        [ b_2_Sig(u, qP)   ,  0          , b_4_Sig(d/dt, qP), a_2_P(pP, qP) , -b_2_P(phi/dt, qP)], # sign of b_2_Sig(u, qP)?
+        [ -b_2_Sig(u, qP)   ,  0          , -b_4_Sig(d/dt, qP), a_2_P(pP, qP) , -b_2_P(phi/dt, qP)], # sign of b_2_Sig(u, qP)?
         [ 0                ,  0          , b_1_P(d, psi)    , b_2_P(psi, pP), -a_3_P(phi, psi) ]]
 
     if linearize:
@@ -320,7 +331,6 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
         write_to_file(results, time, names, output_checkp,
                       output_legacy, elem_type)
         
-
         u = results[0]
         outflow += assemble(inner(u,FacetNormal(mesh))*dt*ds(spinal_outlet_id))
     output_checkp.close()

@@ -124,6 +124,16 @@ def extract_subdomains_from_physiological_labels(mesh_file):
     fluid_restr._write(mesh_path + "_fluid.rtc.xdmf")
     porous_restr._write(mesh_path + "_porous.rtc.xdmf")
 
+    dx = Measure("dx", domain=mesh, subdomain_data=labels)
+    config["volumes"] = {}
+
+    # compute total volumes:
+    for dom in config["domains"]:
+        vol = assemble(Constant(1)*dx( dom["id"] ))
+        config["volumes"][dom["name"]] = vol*1e6
+    with open(f"{mesh_path}_config.yml", 'w') as conf_outfile:
+        yaml.dump(config, conf_outfile, default_flow_style=None)
+
 if __name__=="__main__":
     mesh_file = sys.argv[1]
     extract_subdomains_from_physiological_labels(mesh_file)
