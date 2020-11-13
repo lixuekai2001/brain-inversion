@@ -4,11 +4,11 @@ idealized_simulations = {#"ideal_brain_3D_Ncoarse":"sinusBrainSim",
                          #"ideal_brain_3D_Ncoarse":"baladontBrainSim",
                          #"ideal_brain_3D_Nmid":"stdBrainSim"
                          }
-real_brain_simulations = {"MRIExampleSegmentation_Nvcoarse":"sinusBrainSim",
+real_brain_simulations = {#"MRIExampleSegmentation_Nvcoarse":"sinusBrainSim",
                           "MRIExampleSegmentation_Nvcoarse":"baladontBrainSim",
-                          "MRIExampleSegmentation_Ncoarse":"sinusBrainSim",
+                          #"MRIExampleSegmentation_Ncoarse":"sinusBrainSim",
                           "MRIExampleSegmentation_Ncoarse":"baladontBrainSim",
-                          "MRIExampleSegmentation_Nmid":"baladontBrainSim",
+                          #"MRIExampleSegmentation_Nmid":"baladontBrainSim",
                         }
 sing_bind = ""
 
@@ -24,7 +24,7 @@ except:
 ruleorder: generateMeshFromStl > generateMeshFromCSG
 
 # input size in mb, num cpus, ram in mb
-ressource_from_inputsize = [(1, 4, 4000), (5, 4, 8000), (10, 12, 25000), (18, 12, 35000),
+ressource_from_inputsize = [(1, 4, 4000), (5, 8, 12000), (10, 12, 25000), (18, 12, 35000),
                             (25, 12, 40000),
                             (40, 20, 100000),(60, 24, 100000), (80, 40, 184000),
                             (100, 60, 300000)]
@@ -35,12 +35,12 @@ def estimate_ressources(wildcards, input, attempt):
     cpus = 40
     nodes = 1
     for res in ressource_from_inputsize:
-        if res[0] > input.size_mb:
+        if res[0] >= input.size_mb:
             cpus = int(min(res[1] + (attempt-1)*4, 40))
             mem = int(min(res[2]*1.3**(attempt -1), 184000))
             break
     nodes = int(np.ceil(cpus/40))
-    tot_minutes = int(cpus*5 * 1.5**(attempt -1))
+    tot_minutes = int(cpus*4 * 1.5**(attempt -1))
     mins = tot_minutes%60
     hours = tot_minutes//60
     return {"mem_mb":mem, "cpus":cpus, "nodes":nodes, "time":f"0{hours}:{mins}:00"}
@@ -52,13 +52,13 @@ rule all:
                 sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
         expand("results/{sim}/movies/{movies}/{movies}.mp4", movies=movies,
                 sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
-        expand("results/{sim}/flow_plots/ventr_CSF_flow.png",
+        expand("results/{sim}/flow_plots/flow_plots.txt",
                     sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
-        expand("results/{sim}/flow_plots/ventr_CSF_flow.png",
+        expand("results/{sim}/flow_plots/flow_plots.txt",
                     sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
-        expand("results/{sim}/pressure_plots/pressure_gradient_lateral_ventricles_top_sas.png",
+        expand("results/{sim}/pressure_plots/pressure_plots.txt",
                     sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
-        expand("results/{sim}/pressure_plots/pressure_gradient_lateral_ventricles_top_sas.png",
+        expand("results/{sim}/pressure_plots/pressure_plots.txt",
                     sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
 
 rule all_movies:
@@ -116,7 +116,7 @@ rule runBrainSim:
         time=lambda wildcards, input, attempt: estimate_ressources(wildcards, input, attempt)["time"],
     shell:
         """
-        mpirun --bind-to core -n {resources.ntasks} /usr/bin/time -p \
+        srun --cpu-bind=verbose -m block:block -n {resources.ntasks} /usr/bin/time -p \
         singularity exec \
         {sing_bind} \
         {params.sing_image} \
@@ -199,7 +199,7 @@ rule makePressurePlots:
         subdomain_file="meshes/{mesh}/{mesh}.xdmf",
         sim_config_file="results/{mesh}_{sim_name}/config.yml"
     output:
-        "results/{mesh}_{sim_name}/pressure_plots/pressure_gradient_lateral_ventricles_top_sas.png"
+        "results/{mesh}_{sim_name}/pressure_plots/pressure_plots.txt"
     params:
         sing_image="~/sing_images/biotstokes.simg"
     shell:
@@ -208,7 +208,8 @@ rule makePressurePlots:
         {sing_bind} \
         {params.sing_image} \
         xvfb-run -a python3 scripts/pressurePlots.py \
-        {wildcards.mesh} {wildcards.sim_name}
+        {wildcards.mesh} {wildcards.sim_name} && \
+        touch results/{wildcards.mesh}_{wildcards.sim_name}/pressure_plots/pressure_plots.txt
         """
 
 rule makeFlowPlots:
@@ -217,7 +218,7 @@ rule makeFlowPlots:
         subdomain_file="meshes/{mesh}/{mesh}.xdmf",
         sim_config_file="results/{mesh}_{sim_name}/config.yml"
     output:
-        "results/{mesh}_{sim_name}/flow_plots/cum_CSF_flow.png"
+        "results/{mesh}_{sim_name}/flow_plots/flow_plots.txt"
     params:
         sing_image="~/sing_images/biotstokes.simg"
     shell:
@@ -226,7 +227,8 @@ rule makeFlowPlots:
         {sing_bind} \
         {params.sing_image} \
         xvfb-run -a python3 scripts/flowPlots.py \
-        {wildcards.mesh} {wildcards.sim_name}
+        {wildcards.mesh} {wildcards.sim_name} && \
+        touch results/{wildcards.mesh}_{wildcards.sim_name}/flow_plots/flow_plots.txt
         """
 
 

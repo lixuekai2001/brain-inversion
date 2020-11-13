@@ -21,16 +21,17 @@ def runFluidPorousBrainSim(config_file_path, mesh_file_path, outfile_path):
     num_threads = config["num_threads"]
     if num_threads!="default":
         pass
-    PETScOptions.set("mat_mumps_use_omp_threads", 8)
+    PETScOptions.set("mat_mumps_use_omp_threads", 4)
     #PETScOptions.set("mat_mumps_icntl_13", 0) # set scalapack use
     PETScOptions.set("mat_mumps_icntl_4", 3) # set mumps verbosity (0-4)
     #PETScOptions.set("mat_mumps_icntl_14", 50) # set percentage increase of workspace
-    #PETScOptions.set("mat_mumps_icntl_7", 3) # set mumps ordering
+    #PETScOptions.set("mat_mumps_icntl_7", 5) # set mumps ordering
+    #PETScOptions.set("mat_mumps_icntl_20", 0) # centralized rhsset mumps ordering
     PETScOptions.set("mat_mumps_icntl_22", 1) # use out of core
     PETScOptions.set("mat_mumps_icntl_28", 2) # use 1 for sequential analysis and ictnl(7) ordering, or 2 for parallel analysis and ictnl(29) ordering
-    PETScOptions.set("mat_mumps_icntl_29", 1) # parallel ordering 1 = ptscotch, 2 = parmetis
+    PETScOptions.set("mat_mumps_icntl_29", 2) # parallel ordering 1 = ptscotch, 2 = parmetis
     #PETScOptions.set("mat_mumps_icntl_35", 1) # set use of BLR (Block Low-Rank) feature (0:off, 1:optimal)
-    #PETScOptions.set("mat_mumps_cntl_7", 1e-10) # set BLR relaxation
+    #PETScOptions.set("mat_mumps_cntl_7", 1e-6) # set BLR relaxation
 
     #PETScOptions.set("snes_lag_jacobian",1) #use -1 to never recompute
 

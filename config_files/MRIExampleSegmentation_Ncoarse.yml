@@ -20,7 +20,7 @@ domains :
 
 surface_processing:
   parenchyma : {grow : 0.0, smooth_taubin : 100, clip : [ 0, 0.0 , -1 ,-110]}
-  csf : {grow : 0.0, smooth_taubin : 100, clip : [ 0, 0, -1, -110] }
+  csf : {grow : -1.2, smooth_taubin : 100, clip : [ 0, 0, -1, -110] }
   median_aperture : { grow : 0.2, smooth_shape : [0.12, 12] }
   third_ventricle : { grow : 0.1, smooth_shape : [0.1 , 10] }
   aqueduct : { grow : 0.2, smooth_shape : [0.1 , 10] }

@@ -10,8 +10,8 @@ __default__:
   gres : "localscratch:0G"
 
 makeMovie:
-  mem : 8G
-  time : 01:00:00
+  mem : 60G
+  time : 00:10:00
 
 runBrainSim:
-  gres : "localscratch:100G"
+  gres : "localscratch:150G"

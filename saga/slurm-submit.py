@@ -19,6 +19,7 @@ RESOURCE_MAPPING = {
     "mem-per-cpu": ("mem-per-cpu", "mem_per_cpu", "mem_per_thread"),
     "nodes": ("nodes", "nnodes"),
     "ntasks": ("ntasks","cpus"),
+    "cpus-per-task":("cpus_per_task")
     }
 # parse job
 jobscript = slurm_utils.parse_jobscript()
