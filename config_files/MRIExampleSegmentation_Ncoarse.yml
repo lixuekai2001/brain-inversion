@@ -19,22 +19,22 @@ domains :
   - {name : third_ventricle, id : 4, type : fluid}
 
 surface_processing:
-  parenchyma : {grow : 0.0, smooth_taubin : 100, clip : [ 0, 0.0 , -1 ,-110]}
-  csf : {grow : -1.2, smooth_taubin : 100, clip : [ 0, 0, -1, -110] }
-  median_aperture : { grow : 0.2, smooth_shape : [0.12, 12] }
+  parenchyma : {grow : -0.5, smooth_taubin : 100, clip : [ 0, 0.0 , -1 ,-102]}
+  csf : {grow : -2.5, smooth_taubin : 100, clip : [ 0, 0, -1, -102] }
+  median_aperture : { grow : 0.0, smooth_shape : [0.12, 12] }
   third_ventricle : { grow : 0.1, smooth_shape : [0.1 , 10] }
   aqueduct : { grow : 0.2, smooth_shape : [0.1 , 10] }
   lateral_ventricles : { grow : 0.0,  smooth_taubin : 100}
-  fourth_ventricle : { grow : 0.4, smooth_shape : [0.15, 15]}
+  fourth_ventricle : { grow : 0.4, smooth_shape : [0.15, 10]}
   foramina : { grow : 0.8, smooth_taubin : 10}
 
 refinement : 
-  - {name: aqueduct, iterations : 0, target_size: 0.006}
-  - {name: fourth_ventricle, iterations : 0, target_size: 0.006}
-  - {name: lateral_ventricles, iterations : 0, target_size: 0.006}
-  - {name: foramina, iterations : 0, target_size: 0.006}
-  - {name: median_aperture, iterations : 0, target_size: 0.006}
-  - {name: third_ventricle, iterations : 0, target_size: 0.006}
+  - {name: aqueduct, iterations : 1, target_size: 0.006}
+  - {name: fourth_ventricle, iterations : 1, target_size: 0.006}
+  - {name: lateral_ventricles, iterations : 1, target_size: 0.006}
+  - {name: foramina, iterations : 1, target_size: 0.006}
+  - {name: median_aperture, iterations : 1, target_size: 0.006}
+  - {name: third_ventricle, iterations : 1, target_size: 0.006}
   - {name: csf, iterations : 1, target_size: 0.006}
 
 probes :

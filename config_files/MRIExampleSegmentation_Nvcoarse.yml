@@ -19,13 +19,13 @@ domains :
   - {name : third_ventricle, id : 4, type : fluid}
 
 surface_processing:
-  parenchyma : {grow : 0.0, smooth_taubin : 100, clip : [ 0, 0.0 , -1 ,-110]}
-  csf : {grow : -1.2, smooth_taubin : 100, clip : [ 0, 0, -1, -110] }
-  median_aperture : { grow : 0.2, smooth_shape : [0.12, 12] }
+  parenchyma : {grow : -0.5, smooth_taubin : 100, clip : [ 0, 0.0 , -1 ,-102]}
+  csf : {grow : -2.5, smooth_taubin : 100, clip : [ 0, 0, -1, -102] }
+  median_aperture : { grow : 0.0, smooth_shape : [0.12, 12] }
   third_ventricle : { grow : 0.1, smooth_shape : [0.1 , 10] }
   aqueduct : { grow : 0.2, smooth_shape : [0.1 , 10] }
   lateral_ventricles : { grow : 0.0,  smooth_taubin : 100}
-  fourth_ventricle : { grow : 0.4, smooth_shape : [0.15, 15]}
+  fourth_ventricle : { grow : 0.4, smooth_shape : [0.15, 10]}
   foramina : { grow : 0.8, smooth_taubin : 10}
 
 refinement : 
@@ -36,6 +36,7 @@ refinement :
   - {name: median_aperture, iterations : 0, target_size: 0.006}
   - {name: third_ventricle, iterations : 0, target_size: 0.006}
   - {name: csf, iterations : 0, target_size: 0.006}
+
 probes :
   ventricular_system:
     "right_lat_horn" : [0.03143779052656093, 0.003711848707496808, -0.01133390164323887]
@@ -58,3 +59,7 @@ probes :
     "front_parenchyma" : [-0.00204092219268566, 0.0621882213514154, 0.014020294780783952]
     "back_parenchyma" : [-0.0010667874460265176, -0.06434850385047788, 0.006207790107735872]
     "top_parenchyma" : [-0.002145338277091235, -0.02257952991257364, 0.05259993282071532]
+
+
+
+
