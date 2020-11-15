@@ -22,18 +22,22 @@ names = ["pF", "pP", "phi"]
 variables = {"pF":"fluid", "pP":"porous", "phi":"porous",
             "d":"porous", "u":"fluid"}
 
+
 def plot_scalar_time_evolution(point_var_list, mesh_config, results, ylabel,times, plot_dir, scale=1):
     plt.figure(figsize=(10,8))
     plotname = f"pressure_" 
+    pressure_data = {}
     for (var, p_name) in point_var_list:
         data = extract_cross_section(results[var], [Point(flatprobes[p_name])]).flatten()*scale
         plt.plot(times, data,"-*" , label=f"{var} : {p_name}")
         plotname += p_name + "_"
+        pressure_data[p_name] = data
     plt.legend()
     plt.grid()
     plt.xlabel("t in s")
     plt.ylabel(ylabel)
-    plt.savefig(f"{plot_dir}/{plotname[:-1]}.png")
+    plt.savefig(f"{plot_dir}/{plotname[:-1]}.pdf")
+    return pressure_data
 
 def intermediates(p1, p2, nb_points=8):
     """"Return a list of nb_points equally spaced points
@@ -88,6 +92,7 @@ if __name__=="__main__":
     sim_config_file = f"results/{mesh_name}_{sim_name}/config.yml"
     mesh_config_file = f"meshes/{mesh_name}/{mesh_name}_config.yml"
     plot_dir = f"results/{mesh_name}_{sim_name}/pressure_plots/"
+    key_quantities_file = f"results/{mesh_name}_{sim_name}/pressure_key_quantities.yml"
 
     with open(mesh_config_file) as conf_file:
         mesh_config = yaml.load(conf_file, Loader=yaml.FullLoader)
@@ -119,6 +124,8 @@ if __name__=="__main__":
 
     infile = XDMFFile(sim_file)
 
+
+    # read simulation data
     results = {n:[] for n in names}
     for n in names:
         for i in range(num_steps + 1):
@@ -127,13 +134,20 @@ if __name__=="__main__":
             results[n].append(f)
     infile.close()
 
-    # create plots:
+    key_quantities = {}
+
+    # create Pressure over time plots
 
     ylabel = "p in mmHg"
     point_var_list = [("pF","front_sas"),("phi","front_parenchyma"),
                       ("pF","lateral_ventricles")]
-    plot_scalar_time_evolution(point_var_list, mesh_config, results,
-                              ylabel, times, plot_dir, scale=1/mmHg2Pa)
+    pdata = plot_scalar_time_evolution(point_var_list, mesh_config, results,
+                                       ylabel, times, plot_dir, scale=1/mmHg2Pa)
+
+    key_quantities["max_lat_ventricle_pressure"] = pdata["lateral_ventricles"].max()
+    key_quantities["min_lat_ventricle_pressure"] = pdata["lateral_ventricles"].min()
+    key_quantities["mean_lat_ventricle_pressure"] = pdata["lateral_ventricles"].mean()
+
 
     point_var_list = [("pF","back_sas"),("phi","back_parenchyma"),
                       ("pF","lateral_ventricles")]
@@ -167,7 +181,14 @@ if __name__=="__main__":
     plt.xlabel("t in s")
     plt.title(f"pressure gradient ({gradient_ventr_probe_point} - {gradient_sas_probe_point})")
     plt.ylabel("pressure grad in mmHg/m")
-    plt.savefig(f"{plot_dir}/{plotname}.png")
+    plt.savefig(f"{plot_dir}/{plotname}.pdf")
+
+    key_quantities["max_pressure_gradient"] = gradient.max()
+    key_quantities["min_pressure_gradient"] = gradient.min()
+    key_quantities["mean_pressure_gradient"] = gradient.mean()
+    key_quantities["peak_pressure_gradient"] = abs(gradient).max()
+    key_quantities["pressure_gradient_distance"] = dist
+
 
     # plot cross section through the domain
     filter_dict = {"pF":fluid_filter, "phi":por_filter, "pP":por_filter, "d":por_filter, "u":fluid_filter}
@@ -187,6 +208,9 @@ if __name__=="__main__":
     p2 = "top_sas"
     plot_cross_section(p1, p2, n_crossP, ["pF", "phi", "pP"],
                     results, time_indices, filter_dict, plot_dir, scale=1/mmHg2Pa)
+
+    with open(key_quantities_file) as key_q_file:
+        yaml.dump(key_quantities, key_q_file)
 
 
 
