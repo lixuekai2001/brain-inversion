@@ -5,9 +5,12 @@ idealized_simulations = {#"ideal_brain_3D_Ncoarse":"sinusBrainSim",
                          #"ideal_brain_3D_Nmid":"stdBrainSim"
                          }
 real_brain_simulations = {#"MRIExampleSegmentation_Nvcoarse":"sinusBrainSim",
-                          "MRIExampleSegmentation_Nvcoarse":"baladontBrainSim",
+                          "MRIExampleSegmentation_Nvcoarse":"standard",
+                          "MRIExampleSegmentation_Ncoarse":"standard",
+                          "MRIExampleSegmentation_Nvcoarse":"ModelA",
+                          "MRIExampleSegmentation_Nvcoarse":"ModelB",
+                          "MRIExampleSegmentation_Nvcoarse":"ModelC",
                           #"MRIExampleSegmentation_Ncoarse":"sinusBrainSim",
-                          "MRIExampleSegmentation_Ncoarse":"baladontBrainSim",
                           #"MRIExampleSegmentation_Nmid":"baladontBrainSim",
                         }
 sing_bind = ""
