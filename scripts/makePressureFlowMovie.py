@@ -2,7 +2,8 @@ from braininversion.PostProcessing import (load_results_and_mesh,
                                            scalar_bars,
                                            compute_glob_stat,
                                            extract_data,
-                                           create_movie)
+                                           create_movie,
+                                           scale_grid)
 import matplotlib.pyplot as plt
 import os
 import numpy as np
@@ -10,10 +11,10 @@ import yaml
 import sys
 import pyvista as pv
 
-name = "SagittalDisplacement"
+name = "PressureFlow"
 fps = 5
 interpFrames = 1
-dist = 0.4
+dist = 0.32
 cpos = {"y":[(0, dist, 0), (0, 0, 0), (0, 0, 1)],
         "x":[(dist,0, 0), (0, 0, 0), (0, 0, 1)],
         "z": [(0, 0, dist*1.3), (0, 0, 0), (0, 1, 0)]}
@@ -23,9 +24,9 @@ invert_dict = {"x":True, "y":True, "z":True}
 
 
 sargs = dict(title_font_size=20,label_font_size=16,shadow=True,n_labels=3,
-             italic=True,font_family="arial", height=0.4, vertical=True, position_y=0.05)
-scalar_bars = {"left": dict(position_x=0.05, **sargs),
-               "right": dict(position_x=0.95, **sargs)}
+             italic=True,font_family="arial", height=0.4, vertical=True, position_y=0.02)
+scalar_bars = {"left": dict(position_x=0.2, **sargs),
+               "right": dict(position_x=0.8, **sargs)}
 
 class ImageGenerator(object):
     def __init__(self, mesh_name, sim_name):
@@ -42,16 +43,17 @@ class ImageGenerator(object):
         csf_filled = [dom["name"] for dom in mesh_config["domains"] if dom["name"] not in ["parenchyma"]]
         self.data_u = extract_data(mesh_grid, ["u"], csf_filled,
                                     list(range(num_steps + 1)), sim_file, mesh_config)
-        self.data_d = extract_data(mesh_grid, ["d"], ["parenchyma"],
+        self.data_pF = extract_data(mesh_grid, ["pF"], csf_filled,
                                     list(range(num_steps + 1)), sim_file, mesh_config)
         print("finished loading data.")
 
         self.data_u.clip((0,0,-1), (0,0,-0.1), inplace=True, invert=True)
-        self.data_d.clip((0,0,-1), (0,0,-0.1), inplace=True, invert=True)
-
+        self.data_pF.clip((0,0,-1), (0,0,-0.1), inplace=True, invert=True)
         
-        self.d_range = self.get_range("d", self.data_d)
+        scale_grid(self.data_pF, 1/132.32)
+
         self.u_range = self.get_range("u", self.data_u)
+        self.pF_range = self.get_range("pF", self.data_pF)
 
         #self.phi_range = self.get_range("phi", self.data_phi)
         #self.pressure_range = [min(self.pF_range[0], self.phi_range[0]),
@@ -68,21 +70,20 @@ class ImageGenerator(object):
         
 
     def generate_image(self, time_idx, view="x"):
-        d = f"d_{int(time_idx)}"
+        pF = f"pF_{int(time_idx)}"
         u = f"u_{int(time_idx)}"
 
         clipped_data_u = self.data_u.clip(view, origin=origin, invert=invert_dict[view])
-        clipped_data_d = self.data_d.clip(view, origin=origin, invert=invert_dict[view])
+        clipped_data_pF = self.data_pF.clip(view, origin=origin, invert=invert_dict[view])
         p = pv.Plotter(off_screen=True, notebook=False)
-        arrows_d = clipped_data_d.glyph(scale=d, factor=60, orient=d)
-        p.add_mesh(arrows_d, scalars='GlyphScale', cmap ="speed", clim=self.d_range,
-                   stitle="disp Magnitude [m]", scalar_bar_args = scalar_bars["left"])
-        p.add_mesh(clipped_data_d, color="red", opacity=0.5) 
+        arrows_u = clipped_data_u.glyph(scale=u, factor=1.5, orient=u)
+        #p.add_mesh(arrows_u, scalars='GlyphScale', color ="white"), #clim=self.u_range,
+                   #stitle="vel Magnitude [m/s]", scalar_bar_args = scalar_bars["right"])
+        p.add_mesh(arrows_u, color ="white")#, scalars='GlyphScale',,#clim=self.u_range,
+                   #stitle="vel Magnitude [m/s]", scalar_bar_args = scalar_bars["right"])
+        p.add_mesh(clipped_data_pF, scalars=pF, cmap="balance",# opacity=0.99,
+                   scalar_bar_args = scalar_bars["right"], stitle="pressure [mmHg]") 
 
-        arrows_u = clipped_data_u.glyph(scale=u, factor=0.5, orient=u)
-        p.add_mesh(arrows_u, scalars='GlyphScale', cmap ="amp", clim=self.u_range,
-                   stitle="vel Magnitude [m/s]", scalar_bar_args = scalar_bars["right"])
-        p.add_mesh(clipped_data_u, color="white", opacity=0.2) 
         p.camera_position = cpos[view] #camera position, focal point, and view up.
         return p, ()
 
@@ -91,17 +92,24 @@ def create_array_plot(path, time_indices, source_expr, img_gen_func, times):
     pv.set_plot_theme("document")
 
     nind = len(time_indices)
-    size = 8
+    size = 10
 
-    fig, axes = plt.subplots(3, nind, figsize=(nind*size, size*2))
+    fig, axes = plt.subplots(nind, 3, figsize=(size*3, nind*size))
     for j, idx in enumerate(time_indices):
         for i,view in enumerate(views):
             p, _ = img_gen_func(idx, view=view)
             img = p.screenshot(transparent_background=True, return_img=True, window_size=None)
-            axes[i,j].imshow(img)
-            axes[i,j].set_title(f"t = {times[idx]:.4f} s")
-    plt.tight_layout()
-    plt.savefig(path + "_array_plot.pdf")
+            fig2,ax2 = plt.subplots()
+            ax2.imshow(img)
+            ax2.axis('off')
+            fig2.tight_layout()
+            fig2.savefig(path + f"{view}_{times[idx]:.4f}.pdf")
+            axes[j,i].imshow(img)
+            axes[j,i].set_title(f"t = {times[idx]:.4f} s")
+            axes[j,i].axis('off')
+    
+    fig.tight_layout()
+    fig.savefig(path + "_array_plot.pdf")
 
 if __name__=="__main__":
     print("start movie creation...")
@@ -112,8 +120,8 @@ if __name__=="__main__":
     img_gen = ImageGenerator(mesh_name, sim_name)
     img_gen_func = lambda time_idx: img_gen.generate_image(time_idx)
 
-    create_movie(f"{movie_path}/{name}", img_gen.times, img_gen.source_expr, img_gen_func, 
-                        fps=fps, interpolate_frames=interpFrames)
+    #create_movie(f"{movie_path}/{name}", img_gen.times, img_gen.source_expr, img_gen_func, 
+    #                    fps=fps, interpolate_frames=interpFrames)
 
     img_gen_func = lambda time_idx, view: img_gen.generate_image(time_idx, view=view)
 

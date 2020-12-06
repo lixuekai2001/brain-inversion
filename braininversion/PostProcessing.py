@@ -22,8 +22,8 @@ ventricular_system = ["lateral_ventricles", "foramina", "aqueduct", "third_ventr
 
 sargs = dict(title_font_size=20,label_font_size=16,shadow=True,n_labels=3,
              italic=True,font_family="arial", height=0.4, vertical=True, position_y=0.05)
-scalar_bars = {"left": dict(position_x=0.05, **sargs),
-               "right": dict(position_x=0.95, **sargs)}
+scalar_bars = {"left": dict(position_x=0.1, **sargs),
+               "right": dict(position_x=0.9, **sargs)}
 
 porous_id = 1
 
@@ -221,7 +221,7 @@ def load_results_and_mesh(mesh_name, sim_name):
     source_conf = sim_config["source_data"]
     mesh, subdomain_marker, label_marker, boundary_marker, label_boundary_marker = load_meshes(mesh_name)
 
-    source_expr = get_source_expression(source_conf, mesh, subdomain_marker, porous_id, times)
+    source_expr,_ = get_source_expression(source_conf, mesh, subdomain_marker, porous_id, times)
     
     return mesh_grid, sim_config, mesh_config, sim_file_old, source_expr
 

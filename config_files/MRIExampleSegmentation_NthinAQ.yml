@@ -23,19 +23,19 @@ surface_processing:
   csf : {grow : -2.5, smooth_taubin : 100, clip : [ 0, 0, -1, -102] }
   median_aperture : { grow : 0.0, smooth_shape : [0.12, 12] }
   third_ventricle : { grow : 0.1, smooth_shape : [0.1 , 10] }
-  aqueduct : { grow : -0.2, smooth_shape : [0.1 , 10] }
+  aqueduct : { grow : -0.4, smooth_shape : [0.1 , 10] }
   lateral_ventricles : { grow : 0.0,  smooth_taubin : 100}
   fourth_ventricle : { grow : 0.4, smooth_shape : [0.15, 10]}
   foramina : { grow : 0.8, smooth_taubin : 10}
 
 refinement : 
-  - {name: aqueduct, iterations : 1, target_size: 0.0}
-  - {name: fourth_ventricle, iterations : 1, target_size: 0.0}
-  - {name: lateral_ventricles, iterations : 1, target_size: 0.0}
-  - {name: foramina, iterations : 1, target_size: 0.0}
-  - {name: median_aperture, iterations : 1, target_size: 0.0}
-  - {name: third_ventricle, iterations : 1, target_size: 0.0}
-  - {name: csf, iterations : 1, target_size: 0.0}
+  - {name: aqueduct, iterations : 0, target_size: 0.006}
+  - {name: fourth_ventricle, iterations : 0, target_size: 0.006}
+  - {name: lateral_ventricles, iterations : 0, target_size: 0.006}
+  - {name: foramina, iterations : 0, target_size: 0.006}
+  - {name: median_aperture, iterations : 0, target_size: 0.006}
+  - {name: third_ventricle, iterations : 0, target_size: 0.006}
+  - {name: csf, iterations : 0, target_size: 0.006}
 
 probes :
   ventricular_system:
@@ -49,8 +49,8 @@ probes :
   sas:
     "spinal_canal": [-0.000767256847465048, -0.03094325458398209, -0.10242404571396238]
     "brain_stem" : [-0.0014902204188636488, -0.024863769677751956, -0.09956435916964233]
-    "front_sas" : [-0.0014562599948899219, 0.08499894446056501, 0.01799751972404644]
-    "top_sas" : [ -0.0021582432091236115, -0.004801694303750992, -0.015131015330553055]
+    "front_sas" : [-0.0016692769657097196, 0.08658054885448267, 0.016711414054160007]
+    "top_sas" : [-0.0028080956832846156, -0.031145142228593818, 0.06816963181882568]
     "back_sas" : [-0.0010018866806678257, -0.09396552908779228, 0.004199370078325736]
     "left_sas" : [0.06706644802553782, -0.006853577293965964, 0.01374631596428793]
     "right_sas" : [-0.06710811824153429, -0.005802153783058008, 0.02041346627864035]

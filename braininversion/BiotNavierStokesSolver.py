@@ -41,12 +41,12 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
                              initial_d=None,
                              initial_u=None,
                              g_source=Constant(0.0),
-                             f_fluid=Constant(0.0),
-                             f_porous=Constant(0.0),
+                             f_fluid=None,
+                             f_porous=None,
                              outlet_pressure=Constant(0.0),
                              move_mesh=False,
                              filename=None,
-                             linearize=False,
+                             linearize=True,
                              interf_id=1,
                              u_degree=2, p_degree=1):
     
@@ -133,6 +133,12 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
     if initial_u is None:
         initial_u = Constant([0.0]*gdim)
 
+    if f_fluid is None:
+        f_fluid = Constant([0.0]*gdim)
+    
+    if f_porous is None:
+        f_porous = Constant([0.0]*gdim)
+
     u_n.assign(interpolate(initial_u, H.sub(0)))
     pF_n.assign(interpolate(initial_pF, H.sub(1)))
     d_n.assign(interpolate(initial_d, H.sub(2)))
@@ -140,6 +146,7 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
     phi_n.assign(interpolate(initial_phi, H.sub(4)))
 
     previous.apply("from subfunctions")
+    outlet_pressure_func = Function(W)
 
     # extract Dirichlet boundary conditions
     bcs = []
@@ -163,11 +170,27 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
         return inner(proj_t(u("+")), proj_t(v("+")))*ds_Sig + inner(u,v)*Constant(0.0)*dxD
 
     # define forms
-    def a_F(u,v):
-        return rho_f*dot(u/dt, v)*dxF \
-                + 2*mu_f*inner(eps(u), eps(v))*dxF \
-                + (gamma*mu_f/sqrt(kappa))*tang_interf(u,v)
 
+    if linearize=="steadyStokes":
+
+        def a_F(u,v):
+            return 2*mu_f*inner(eps(u), eps(v))*dxF \
+                    + (gamma*mu_f/sqrt(kappa))*tang_interf(u,v)
+
+    else:
+        def a_F(u,v):
+            return rho_f*dot(u/dt, v)*dxF \
+                    + 2*mu_f*inner(eps(u), eps(v))*dxF \
+                    + (gamma*mu_f/sqrt(kappa))*tang_interf(u,v)
+    
+
+    if linearize:
+        def c_F(u,v):
+            return 0*dxF
+
+    elif linearize=="Oseen":
+        def c_F(u,v):
+            return rho_f * inner(dot(u_n, grad(u)), v) *dxF
 
     def b_1_F(v, qF):
         return  -qF*div(v)*dxF
@@ -200,7 +223,7 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
         return (1.0/lmbda)*phi*psi*dxP
 
     def F_F(v):
-        return rho_f*dot(f_fluid, v)*dxF - dot(outlet_pressure*FacetNormal(mesh), v)*ds(spinal_outlet_id)
+        return rho_f*dot(f_fluid, v)*dxF + dot(outlet_pressure_func*FacetNormal(mesh), v)*ds(spinal_outlet_id)
 
     def F_P(w):
         return rho_s*inner(f_porous, w)*dxP
@@ -210,8 +233,13 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
                 - rho_f*inner(gravity, n)*qP("+")*ds_Sig  + qP*Constant(0.0)*dxD \
                 + g_source*qP*dxP
 
-    def F_F_n(v):
-        return F_F(v) + rho_f*inner(u_n/dt, v)*dxF + b_3_Sig(v, d_n/dt)
+    if linearize=="steadyStokes":
+        def F_F_n(v):
+            return F_F(v) + b_3_Sig(v, d_n/dt)
+
+    else:
+        def F_F_n(v):
+            return F_F(v) + rho_f*inner(u_n/dt, v)*dxF + b_3_Sig(v, d_n/dt)
 
     def F_P_n(w):
         return F_P(w) + (gamma*mu_f/sqrt(kappa))*tang_interf(d_n/dt, w)
@@ -226,14 +254,16 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
     # order test: v, qF, w, qP, psi
 
 
-    lhs = [[ a_F(u,v)      , b_1_F(v, pF), b_3_Sig(v, d/dt) , b_2_Sig(v, pP), 0                 ],
-        [ b_1_F(u, qF)     ,  0          , 0                , 0             , 0                 ],
-        [ b_3_Sig(u, w)    ,  0          , a_1_P(d,w)       , b_4_Sig(w, pP), b_1_P(w, phi)     ],
-        [ -b_2_Sig(u, qP)   ,  0          , -b_4_Sig(d/dt, qP), a_2_P(pP, qP) , -b_2_P(phi/dt, qP)], # sign of b_2_Sig(u, qP)?
-        [ 0                ,  0          , b_1_P(d, psi)    , b_2_P(psi, pP), -a_3_P(phi, psi) ]]
+    lhs = [[a_F(u,v) + c_F(u,v), b_1_F(v, pF), b_3_Sig(v, d/dt) , b_2_Sig(v, pP), 0                 ],
+        [ b_1_F(u, qF)       ,  0          , 0                , 0             , 0                 ],
+        [ b_3_Sig(u, w)      ,  0          , a_1_P(d,w)       , b_4_Sig(w, pP), b_1_P(w, phi)     ],
+        [ -b_2_Sig(u, qP)    ,  0          , -b_4_Sig(d/dt, qP), a_2_P(pP, qP) , -b_2_P(phi/dt, qP)], # sign of b_2_Sig(u, qP)?
+        [ 0                  ,  0          , b_1_P(d, psi)    , b_2_P(psi, pP), -a_3_P(phi, psi) ]]
 
-    if linearize:
-        sol = BlockFunction(H)
+    #sol = BlockFunction(H)
+
+    if linearize==True or linearize=="steadyStokes":
+        #sol = BlockFunction(H)
         AA = block_assemble(lhs, keep_diagonal=True)
         bcs.apply(AA)
         solver = PETScLUSolver(AA, "mumps")
@@ -264,6 +294,18 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
         #solver.solve(sol.block_vector(), FF)
         #sol.block_vector().block_function().apply("to subfunctions")
         #block_assign(previous, sol)
+
+    def solve_oseen():
+        AA = block_assemble(lhs, keep_diagonal=True)
+        bcs.apply(AA)
+        solver = PETScLUSolver(AA, "mumps")
+        solver.parameters["symmetric"] = True
+        rhs = [F_F_n(v), 0, F_P_n(w), G_n(qP), 0]
+        FF = block_assemble(rhs)
+        bcs.apply(FF)
+        solver.solve(previous.block_vector(), FF)
+        previous.block_vector().block_function().apply("to subfunctions")
+
 
     class BiotNSBlockNonLinearProblem(BlockNonlinearProblem):
         def __init__(self, block_solution):
@@ -305,16 +347,24 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
 
     results = block_split(previous)
     write_to_file(results, time, names, output_checkp, output_legacy, elem_type)
+    tot_outflow = 0.0
     outflow = 0.0
+    outlet_pressure_func.assign(interpolate(outlet_pressure, W))
+
     for i in range(num_steps):
         time = (i + 1)*dt.values()[0]
         for expr in time_dep_expr:
             expr.t = time
             expr.i = i + 1
-            expr.outflow_vol = outflow
+            expr.outflow_vol = tot_outflow
+            expr.outflow = outflow
+            expr.p = results[1]
+        outlet_pressure_func.assign(interpolate(outlet_pressure, W))
                 
-        if linearize:
+        if linearize==True or linearize=="steadyStokes":
             solve_linearized()
+        elif linearize=="oseen":
+            solve_oseen()
         else:
             solve_nonlinear()
 
@@ -322,17 +372,18 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
 
         if move_mesh:
             d =  results[2]
-            d_hat = harmonic_extension(mesh, d, boundary_marker,
-                                       fluidrestriction, dxF, interf_id)
+            #d_hat = harmonic_extension(mesh, d, boundary_marker,
+            #                           fluidrestriction, dxF, interf_id)
             
             ALE.move(mesh, d)
-            ALE.move(mesh, d_hat)
+            #ALE.move(mesh, d_hat)
         
         write_to_file(results, time, names, output_checkp,
                       output_legacy, elem_type)
         
         u = results[0]
-        outflow += assemble(inner(u,FacetNormal(mesh))*dt*ds(spinal_outlet_id))
+        outflow = assemble(inner(u,FacetNormal(mesh))*ds(spinal_outlet_id))
+        tot_outflow += outflow*dt
     output_checkp.close()
     output_legacy.close()
     return results

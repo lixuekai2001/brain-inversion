@@ -1,12 +1,12 @@
 directory : "brainMeshBaseFiles/MRIExampleSegmentation"
-cell_size : 4.0 # in mm
-edge_size : 2.0
-facet_size : 2
+cell_size : 8.0 # in mm
+edge_size : 4.0
+facet_size : 4
 facet_angle : 30.0
-facet_distance : 0.2
+facet_distance : 0.4
 cell_radius_edge_ratio : 2.5
 scaling : 1.0e-3 # mm to m
-odt : True
+odt : False
 exude : False
 domains :
   - {name : parenchyma, id : 1, type : porous}
@@ -19,22 +19,24 @@ domains :
   - {name : third_ventricle, id : 4, type : fluid}
 
 surface_processing:
-  parenchyma : {grow : 1.0, smooth_taubin : 100, clip : [ 0, 0.0 , -1 ,-110]}
-  csf : {grow : 1.0, smooth_taubin : 100, clip : [ 0, 0, -1, -110] }
-  median_aperture : { grow : 0.2, smooth_shape : [0.12, 12] }
+  parenchyma : {grow : -0.5, smooth_taubin : 100, clip : [ 0, 0.0 , -1 ,-102]}
+  csf : {grow : -2.5, smooth_taubin : 100, clip : [ 0, 0, -1, -102] }
+  median_aperture : { grow : 0.0, smooth_shape : [0.12, 12] }
   third_ventricle : { grow : 0.1, smooth_shape : [0.1 , 10] }
-  aqueduct : { grow : 0.2, smooth_shape : [0.1 , 10] }
+  aqueduct : { grow : -0.2, smooth_shape : [0.1 , 10] }
   lateral_ventricles : { grow : 0.0,  smooth_taubin : 100}
-  fourth_ventricle : { grow : 0.4, smooth_shape : [0.15, 15]}
+  fourth_ventricle : { grow : 0.4, smooth_shape : [0.15, 10]}
   foramina : { grow : 0.8, smooth_taubin : 10}
-refinement:
-  - {name: aqueduct, iterations : 1, target_size: 0.005}
-  - {name: fourth_ventricle, iterations : 1, target_size: 0.005}
-  - {name: lateral_ventricles, iterations : 1, target_size: 0.005}
-  - {name: foramina, iterations : 1, target_size: 0.005}
-  - {name: median_aperture, iterations : 1, target_size: 0.005}
-  - {name: third_ventricle, iterations : 1, target_size: 0.005}
-  - {name: csf, iterations : 2, target_size: 0.006}
+
+refinement : 
+  - {name: aqueduct, iterations : 2, target_size: 0.0}
+  - {name: fourth_ventricle, iterations : 2, target_size: 0.0}
+  - {name: lateral_ventricles, iterations : 2, target_size: 0.0}
+  - {name: foramina, iterations : 2, target_size: 0.0}
+  - {name: median_aperture, iterations : 2, target_size: 0.0}
+  - {name: third_ventricle, iterations : 2, target_size: 0.0}
+  - {name: csf, iterations : 2, target_size: 0.0}
+
 probes :
   ventricular_system:
     "right_lat_horn" : [0.03143779052656093, 0.003711848707496808, -0.01133390164323887]
@@ -47,8 +49,8 @@ probes :
   sas:
     "spinal_canal": [-0.000767256847465048, -0.03094325458398209, -0.10242404571396238]
     "brain_stem" : [-0.0014902204188636488, -0.024863769677751956, -0.09956435916964233]
-    "front_sas" : [-0.0016692769657097196, 0.08658054885448267, 0.016711414054160007]
-    "top_sas" : [-0.0028080956832846156, -0.031145142228593818, 0.06816963181882568]
+    "front_sas" : [-0.0014562599948899219, 0.08499894446056501, 0.01799751972404644]
+    "top_sas" : [ -0.0021582432091236115, -0.004801694303750992, -0.015131015330553055]
     "back_sas" : [-0.0010018866806678257, -0.09396552908779228, 0.004199370078325736]
     "left_sas" : [0.06706644802553782, -0.006853577293965964, 0.01374631596428793]
     "right_sas" : [-0.06710811824153429, -0.005802153783058008, 0.02041346627864035]
@@ -57,4 +59,7 @@ probes :
     "front_parenchyma" : [-0.00204092219268566, 0.0621882213514154, 0.014020294780783952]
     "back_parenchyma" : [-0.0010667874460265176, -0.06434850385047788, 0.006207790107735872]
     "top_parenchyma" : [-0.002145338277091235, -0.02257952991257364, 0.05259993282071532]
+
+
+
 

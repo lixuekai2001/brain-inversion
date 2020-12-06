@@ -14,6 +14,7 @@ def get_source_expression(source_conf, mesh, subdomains,
         g_source = Expression("vol_scal*" + source_conf["source_expression"],
                         t=0.0,degree=2, vol_scal=vol_scal,
                         **source_conf["source_params"])
+        values = 0 # dummy
 
     # source is given by file:             
     elif "source_file" in source_conf.keys():
@@ -25,10 +26,8 @@ def get_source_expression(source_conf, mesh, subdomains,
         values *= source_conf["scaling"]
         values -= values.mean()
         values*=1.1
-        print(values.shape)
         assert len(values) == len(times)
         assert max(values)< 1
-        print(values)
         g_source = getArrayExpression(values)
         g_source.f = 1/t[-1]
-    return g_source
+    return g_source, values

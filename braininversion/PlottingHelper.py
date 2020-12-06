@@ -3,7 +3,7 @@ from collections import defaultdict
 import numpy as np
 from collections.abc import Iterable
 from fenics import *
-
+#plt.style.use('bmh')
 
 style_dict = {"p_ana":{"c":"firebrick", "marker":"H", "ls":""},
               "p_obs":{"c":"red", "marker":">", "ls":""},
@@ -20,7 +20,7 @@ style_dict = defaultdict(lambda: default, style_dict)
 
 def plot_pressures_and_forces_cross_section(pressures, forces, time_idx,
                                             x_coords):
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12,6))
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(6,4))
     plt.subplot(1,2,1)
 
     for pressure_name, pressure_data in pressures.items():
@@ -32,7 +32,7 @@ def plot_pressures_and_forces_cross_section(pressures, forces, time_idx,
     plt.legend(loc="upper center")
     plt.xlabel("x in m")
     plt.ylabel("p in mmHg")
-    plt.grid()
+    #plt.grid()
     plt.subplot(1,2,2)
 
     for force_name, forces_data in forces.items():
@@ -43,12 +43,12 @@ def plot_pressures_and_forces_cross_section(pressures, forces, time_idx,
 
     #plt.ylabel("g in 1/s")
     plt.xlabel("x in m")
-    plt.grid()
+    #plt.grid()
     plt.legend(loc="upper center")
 
 def plot_pressures_cross_section(pressures, time_idx,
                                             x_coords):
-    plt.figure(figsize=(6,6))
+    plt.figure(figsize=(6,4))
     for pressure_name, pressure_data in pressures.items():
         plt.plot(x_coords, pressure_data[time_idx,:],
                  **style_dict[pressure_name],
@@ -57,12 +57,12 @@ def plot_pressures_cross_section(pressures, time_idx,
     plt.legend(loc="upper left")
     plt.xlabel("x in m")
     plt.ylabel("p in mmHg")
-    plt.grid()
+    #plt.grid()
 
   
 
 def plot_pressures_timeslice(pressures, point_idx, times):
-    plt.figure(figsize=(6,6))
+    plt.figure(figsize=(6,4))
 
     for pressure_name, pressure_data in pressures.items():
 
@@ -73,12 +73,12 @@ def plot_pressures_timeslice(pressures, point_idx, times):
     plt.legend(loc="upper left")
     plt.xlabel("t in s")
     plt.ylabel("p in mmHg")
-    plt.grid()
+    #plt.grid()
 
     
 def plot_pressures_and_forces_timeslice(pressures, forces, point_idx, times):
     
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12,6))
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(6,4))
     plt.subplot(1,2,1)
     #plt.title(f"Point: ({slice_points[i].x():.3f}, {slice_points[i].y():.3f})")
     for pressure_name, pressure_data in pressures.items():
@@ -90,7 +90,7 @@ def plot_pressures_and_forces_timeslice(pressures, forces, point_idx, times):
     plt.legend(loc="upper left")
     plt.xlabel("t in s")
     plt.ylabel("p in mmHg")
-    plt.grid()
+    #plt.grid()
     plt.subplot(1,2,2)
 
     for force_name, forces_data in forces.items():
@@ -100,7 +100,7 @@ def plot_pressures_and_forces_timeslice(pressures, forces, point_idx, times):
 
     #plt.ylabel("g in 1/s")
     plt.xlabel("t in s")
-    plt.grid()
+    #plt.grid()
     plt.legend(loc="upper center")
 
 
@@ -123,7 +123,10 @@ def extract_cross_section_from_list(functions, points,filter_function=None):
         filter_function = Expression("1", degree=0)
     for k, p in enumerate(points):
         for i,f in enumerate(functions):
-            values[i, k, :] = f(p)*filter_function(p)
+            try:
+                values[i, k, :] = f(p)*filter_function(p)
+            except:
+                values[i, k, :] = np.nan
     return values
 
 def extract_cross_section_from_expression(expression, points, times):

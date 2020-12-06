@@ -12,7 +12,7 @@ import sys
 import pyvista as pv
 
 name = "SagittalPressure"
-fps = 4
+fps = 5
 interpFrames = 1
 dist = 0.4
 cpos = {"y":[(0, dist, 0), (0, 0, 0), (0, 0, 1)],
@@ -24,8 +24,8 @@ invert_dict = {"x":True, "y":True, "z":True}
 
 sargs = dict(title_font_size=20,label_font_size=16,shadow=True,n_labels=3,
              italic=True,font_family="arial", height=0.4, vertical=True, position_y=0.05)
-scalar_bars = {"left": dict(position_x=0.05, **sargs),
-               "right": dict(position_x=0.95, **sargs)}
+scalar_bars = {"left": dict(position_x=0.1, **sargs),
+               "right": dict(position_x=0.9, **sargs)}
 
 
 class ImageGenerator(object):
@@ -92,16 +92,24 @@ def create_array_plot(path, time_indices, source_expr, img_gen_func, times):
     pv.set_plot_theme("document")
 
     nind = len(time_indices)
-    size = 8
-    fig, axes = plt.subplots(3, nind, figsize=(nind*size, size*2))
+    size = 6
+
+    fig, axes = plt.subplots(nind, 3, figsize=(size*2.5, nind*size))
     for j, idx in enumerate(time_indices):
         for i,view in enumerate(views):
             p, _ = img_gen_func(idx, view=view)
             img = p.screenshot(transparent_background=True, return_img=True, window_size=None)
-            axes[i,j].imshow(img)
-            axes[i,j].set_title(f"t = {times[idx]: .4f} s")
-    plt.tight_layout()
-    plt.savefig(path + "_array_plot.pdf")
+            plt.figure(i*j)
+            plt.imshow(img)
+            plt.axis('off')
+            plt.savefig(path + f"{view}_{times[idx]:.4f}.pdf")
+            plt.tight_layout()
+            axes[j,i].imshow(img)
+            axes[j,i].set_title(f"t = {times[idx]:.4f} s")
+            axes[j,i].axis('off')
+    
+    fig.tight_layout()
+    fig.savefig(path + "_array_plot.pdf")
 
 if __name__=="__main__":
     print("start movie creation...")
@@ -112,8 +120,8 @@ if __name__=="__main__":
     img_gen = ImageGenerator(mesh_name, sim_name)
     img_gen_func = lambda time_idx: img_gen.generate_image(time_idx)
 
-    #create_movie(f"{movie_path}/{name}", img_gen.times, img_gen.source_expr, img_gen_func, 
-    #                    fps=fps, interpolate_frames=interpFrames)
+    create_movie(f"{movie_path}/{name}", img_gen.times, img_gen.source_expr, img_gen_func, 
+                        fps=fps, interpolate_frames=interpFrames)
 
     img_gen = ImageGenerator(mesh_name, sim_name)
     img_gen.static_colorbar = False
