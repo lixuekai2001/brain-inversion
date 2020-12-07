@@ -6,12 +6,12 @@ num_steps : 180
 OOC : False
 BLR : False
 material_parameter:
-  E : 3000 # Young modulus
+  E : 1500 # Young modulus
   nu : 0.479 # Poisson ratio
   rho_s : 1082
   alpha : 1.0
   kappa : 1.0e-16
-  c :   1.0e-6
+  c :   1.0e-5
   rho_f : 1007
   mu_f : 0.0008
 source_data:

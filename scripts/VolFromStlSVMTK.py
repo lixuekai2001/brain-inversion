@@ -27,22 +27,25 @@ def mesh_from_surfaces(config, outfile):
     parenchyma_file = file_path.format("parenchyma")
 
     print("loading csf and parenchyma...")
-    csf  = svm.Surface(csf_file)
-    parenchyma = svm.Surface(parenchyma_file)
 
+    if ("from_parenchyma" in config["surface_processing"]["csf"] and
+         config["surface_processing"]["csf"]["from_parenchyma"]):
+        csf =  svm.Surface(parenchyma_file)
+        csf.adjust_boundary(config["surface_processing"]["parenchyma"]["grow"])
+        csf.smooth_taubin(config["surface_processing"]["parenchyma"]["smooth_taubin"])
+        csf.adjust_boundary(config["surface_processing"]["csf"]["grow"])
+    else:
+        csf  = svm.Surface(csf_file)
+        csf.adjust_boundary(config["surface_processing"]["csf"]["grow"])
+        csf.smooth_taubin(config["surface_processing"]["csf"]["smooth_taubin"])
+    
+    csf.clip(*config["surface_processing"]["csf"]["clip"], True)
+
+    parenchyma = svm.Surface(parenchyma_file)
     parenchyma.adjust_boundary(config["surface_processing"]["parenchyma"]["grow"])
     parenchyma.smooth_taubin(config["surface_processing"]["parenchyma"]["smooth_taubin"])
     parenchyma.clip(*config["surface_processing"]["parenchyma"]["clip"], True)
 
-    #min_csf =  svm.Surface(parenchyma_file)
-    #min_csf.adjust_boundary(config["surface_processing"]["parenchyma"]["grow"])
-    #min_csf.smooth_taubin(config["surface_processing"]["parenchyma"]["smooth_taubin"])
-    #min_csf.adjust_boundary(2)
-
-    csf.adjust_boundary(config["surface_processing"]["csf"]["grow"])
-    csf.smooth_taubin(config["surface_processing"]["csf"]["smooth_taubin"])
-
-    csf.clip(*config["surface_processing"]["csf"]["clip"], True)
 
     svm.separate_overlapping_surfaces(csf,parenchyma) 
     svm.separate_close_surfaces(csf,parenchyma) 

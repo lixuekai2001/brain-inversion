@@ -10,6 +10,7 @@ from braininversion.PostProcessing import (get_source_expression,
 import os
 import ufl
 import sys
+plt.style.use('bmh') 
 
 porous_id = 1
 fluid_id = 2
@@ -33,7 +34,7 @@ def plot_scalar_time_evolution(point_var_list, mesh_config, results, ylabel,time
         plotname += p_name + "_"
         pressure_data[p_name] = data
     plt.legend()
-    plt.grid()
+    #plt.grid()
     plt.xlabel("t in s")
     plt.ylabel(ylabel)
     plt.savefig(f"{plot_dir}/{plotname[:-1]}.pdf")
@@ -64,7 +65,7 @@ def plot_cross_section(p1, p2, n_crossP, variables, results, time_idx, filter_di
             plt.plot(dist, values[i][time_idx,:], ".-", label=var)
 
         plt.legend()
-        plt.grid()
+        #plt.grid()
         plt.title(f"{p1} to {p2}, t = {(time_idx)*dt:.3f}")
         plt.xlabel("distance in m")
         plt.ylabel("p in mmHg")
@@ -91,8 +92,13 @@ if __name__=="__main__":
 
     sim_config_file = f"results/{mesh_name}_{sim_name}/config.yml"
     mesh_config_file = f"meshes/{mesh_name}/{mesh_name}_config.yml"
-    plot_dir = f"results/{mesh_name}_{sim_name}/pressure_plots/"
+    plot_dir = f"results/{mesh_name}_{sim_name}/pressure_plots"
     key_quantities_file = f"results/{mesh_name}_{sim_name}/pressure_key_quantities.yml"
+
+    try:
+        os.mkdir(plot_dir)
+    except:
+        pass
 
     with open(mesh_config_file) as conf_file:
         mesh_config = yaml.load(conf_file, Loader=yaml.FullLoader)
@@ -124,13 +130,15 @@ if __name__=="__main__":
 
     infile = XDMFFile(sim_file)
 
+    start_idx = 30
+    times = times[start_idx:]
 
     # read simulation data
     results = {n:[] for n in names}
     for n in names:
-        for i in range(num_steps + 1):
+        for i in range(num_steps + 1 - start_idx):
             f = Function(W)
-            infile.read_checkpoint(f, n, i)
+            infile.read_checkpoint(f, n, i + start_idx)
             results[n].append(f)
     infile.close()
 
@@ -149,7 +157,7 @@ if __name__=="__main__":
     key_quantities["mean_lat_ventricle_pressure"] = pdata["lateral_ventricles"].mean()
 
 
-    point_var_list = [("pF","back_sas"),("phi","back_parenchyma"),
+    point_var_list = [("pF","back_sas"),("phi","back_parenchyma"),("pF","top_sas"),
                       ("pF","lateral_ventricles")]
     plot_scalar_time_evolution(point_var_list, mesh_config, results,
                                ylabel, times, plot_dir, scale=1/mmHg2Pa)
@@ -161,55 +169,75 @@ if __name__=="__main__":
 
     # compute pressure gradient
     gradient_ventr_probe_point = "lateral_ventricles"
+    gradient_sas_probe_point = "front_sas"
+
+    def plot_grad(gradient_ventr_probe_point, gradient_sas_probe_point):
+        plotname = f"pressure_gradient_{gradient_ventr_probe_point}_{gradient_sas_probe_point}"
+
+        ventr_point = flatprobes[gradient_ventr_probe_point]
+        sas_point = flatprobes[gradient_sas_probe_point]
+        ventr_data = extract_cross_section(results["pF"], [Point(ventr_point)]).flatten()/mmHg2Pa
+        sas_data = extract_cross_section(results["pF"], [Point(sas_point )]).flatten()/mmHg2Pa
+
+        dist = np.array(ventr_point) - np.array(sas_point)
+        dist = np.linalg.norm(dist)
+        diff = ventr_data - sas_data
+        gradient = diff/dist
+
+        plt.figure(figsize=(10,8))
+        plt.plot(times, gradient , label="gradient")
+        #plt.grid()
+        plt.xlabel("t in s")
+        plt.title(f"pressure gradient ({gradient_ventr_probe_point} - {gradient_sas_probe_point})")
+        plt.ylabel("pressure grad in mmHg/m")
+        plt.savefig(f"{plot_dir}/{plotname}.pdf")
+        return diff, gradient,dist
+
+    gradient_ventr_probe_point = "lateral_ventricles"
+    gradient_sas_probe_point = "front_sas"
+    diff,gradient,dist = plot_grad(gradient_ventr_probe_point, gradient_sas_probe_point)
+
+    gradient_ventr_probe_point = "lateral_ventricles"
     gradient_sas_probe_point = "top_sas"
-    plotname = f"pressure_gradient_{gradient_ventr_probe_point}_{gradient_sas_probe_point}"
+    diff, gradient, dist = plot_grad(gradient_ventr_probe_point, gradient_sas_probe_point)
 
-    ventr_point = flatprobes[gradient_ventr_probe_point]
-    sas_point = flatprobes[gradient_sas_probe_point]
-    ventr_data = extract_cross_section(results["pF"], [Point(ventr_point)]).flatten()/mmHg2Pa
-    sas_data = extract_cross_section(results["pF"], [Point(sas_point)]).flatten()/mmHg2Pa
-
-    dist = np.array(ventr_point) - np.array(sas_point)
-    dist = np.linalg.norm(dist)
-    diff = ventr_data - sas_data
-    gradient = diff/dist
+    plotname = f"pressure_diff_{gradient_ventr_probe_point}_{gradient_sas_probe_point}"
     plt.figure(figsize=(10,8))
-    plt.plot(times, gradient , label="gradient")
-
-    #plt.legend()
-    plt.grid()
+    plt.plot(times, diff )
+    #plt.grid()
     plt.xlabel("t in s")
-    plt.title(f"pressure gradient ({gradient_ventr_probe_point} - {gradient_sas_probe_point})")
-    plt.ylabel("pressure grad in mmHg/m")
+    plt.title(f"pressure difference ({gradient_ventr_probe_point} - {gradient_sas_probe_point})")
+    plt.ylabel("pressure difference in mmHg")
     plt.savefig(f"{plot_dir}/{plotname}.pdf")
 
     key_quantities["max_pressure_gradient"] = gradient.max()
     key_quantities["min_pressure_gradient"] = gradient.min()
     key_quantities["mean_pressure_gradient"] = gradient.mean()
     key_quantities["peak_pressure_gradient"] = abs(gradient).max()
-    key_quantities["pressure_gradient_distance"] = dist
+    key_quantities["pressure_gradient_distance"] = float(dist)
 
 
     # plot cross section through the domain
-    filter_dict = {"pF":fluid_filter, "phi":por_filter, "pP":por_filter, "d":por_filter, "u":fluid_filter}
+    #filter_dict = {"pF":fluid_filter, "phi":por_filter, "pP":por_filter, "d":por_filter, "u":fluid_filter}
 
-    n_crossP = 300
-    time_indices = np.linspace(1, num_steps, 10, dtype=np.int)
-    p1 = "left_sas"
-    p2 = "right_sas"
-    plot_cross_section(p1, p2, n_crossP, ["pF", "phi", "pP"],
-                    results, time_indices, filter_dict, plot_dir, scale=1/mmHg2Pa)
-    p1 = "front_parenchyma"
-    p2 = "back_parenchyma"
-    plot_cross_section(p1, p2, n_crossP, ["pF", "phi", "pP"],
-                    results, time_indices, filter_dict, plot_dir, scale=1/mmHg2Pa)
+    #n_crossP = 300
+    #time_indices = np.linspace(1, num_steps, 10, dtype=np.int)
+    #p1 = "left_sas"
+    #p2 = "right_sas"
+    #plot_cross_section(p1, p2, n_crossP, ["pF", "phi", "pP"],
+    #                results, time_indices, filter_dict, plot_dir, scale=1/mmHg2Pa)
+    #p1 = "front_parenchyma"
+    #p2 = "back_parenchyma"
+    #plot_cross_section(p1, p2, n_crossP, ["pF", "phi", "pP"],
+    #                results, time_indices, filter_dict, plot_dir, scale=1/mmHg2Pa)
+    #p1 = "lateral_ventricles"
+    #p2 = "top_sas"
+    #plot_cross_section(p1, p2, n_crossP, ["pF", "phi", "pP"],
+    #                results, time_indices, filter_dict, plot_dir, scale=1/mmHg2Pa)
 
-    p1 = "lateral_ventricles"
-    p2 = "top_sas"
-    plot_cross_section(p1, p2, n_crossP, ["pF", "phi", "pP"],
-                    results, time_indices, filter_dict, plot_dir, scale=1/mmHg2Pa)
+    key_quantities = {k: float(v) for k,v in key_quantities.items()} 
 
-    with open(key_quantities_file) as key_q_file:
+    with open(key_quantities_file, "w") as key_q_file:
         yaml.dump(key_quantities, key_q_file)
 
 

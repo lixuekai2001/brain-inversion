@@ -1,0 +1,50 @@
+# Standard Config file for coupled Fluid Porous Interaction Brain Sim
+num_threads : 4
+log_level : 12
+T : 3.0
+num_steps : 180
+material_parameter:
+  E : 1000 # Young modulus
+  nu : 0.479 # Poisson ratio
+  rho_s : 1082
+  alpha : 0.99
+  kappa : 5.0e-17
+  c :   1.0e-7
+  rho_f : 1007
+  mu_f : 0.001
+source_data:
+  source_file : data/baladont_tot_inflow_series_shifted.csv
+  source_params:
+    f : 1.0
+  scaling : 1.0e-9 ## mm^3 to m^3
+  scale_by_total_vol : True
+spinal_outlet:
+  outlet_expression : "(1/(1 + dt/R)*dt*p + dt*dt/(0.4343*PVI/P0)*outflow)"
+  outlet_params :
+    R : 1.896e-5 # 8.6 mmHg/mL/min = 8.6*mmHg2Pa*1e-6/60 Pa/m^3/s = 1.896*1e-5 (SI) from https://pubmed.ncbi.nlm.nih.gov/21383326/
+    PVI : 20.0e-6 # C = 0.4343 *PVI/P0 (Marmarou)
+initial_pressure : 600
+sliprate : 1.0
+linearize : True
+element_type : TH
+resources :
+  mins : 45
+  cpus : 8
+  mem : 12000
+  hours: 0
+  MRIExampleSegmentation_Ncoarse :
+    mins : 45
+    cpus : 8
+    mem : 20000
+    hours: 0
+  MRIExampleSegmentation_NvreducedCSF :
+    mins : 00
+    cpus : 24
+    mem : 60000
+    hours: 2
+  MRIExampleSegmentation_NreducedCSF :
+    mins : 30
+    cpus : 20
+    mem : 40000
+    hours: 1
+

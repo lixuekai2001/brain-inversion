@@ -1,23 +1,33 @@
 
 import numpy as np
-idealized_simulations = {#"ideal_brain_3D_Ncoarse":"sinusBrainSim",
+import yaml
+idealized_simulations = [#"ideal_brain_3D_Ncoarse":"sinusBrainSim",
                          #"ideal_brain_3D_Ncoarse":"baladontBrainSim",
                          #"ideal_brain_3D_Nmid":"stdBrainSim"
-                         }
-real_brain_simulations = {#"MRIExampleSegmentation_Nvcoarse":"sinusBrainSim",
-                          "MRIExampleSegmentation_Nvcoarse":"standard",
-                          "MRIExampleSegmentation_Ncoarse":"standard",
-                          "MRIExampleSegmentation_Nvcoarse":"ModelA",
-                          "MRIExampleSegmentation_Nvcoarse":"ModelB",
-                          "MRIExampleSegmentation_Nvcoarse":"ModelC",
-                          #"MRIExampleSegmentation_Ncoarse":"sinusBrainSim",
-                          #"MRIExampleSegmentation_Nmid":"baladontBrainSim",
-                        }
+                        ]
+
+real_brain_simulations = [#"MRIExampleSegmentation_Nvcoarse":"sinusBrainSim",
+                          #("MRIExampleSegmentation_Ncoarse","standard"),
+                          ("MRIExampleSegmentation_Nvcoarse","standard"),
+                          ("MRIExampleSegmentation_Ncoarse","standard"),
+                          #("MRIExampleSegmentation_Nmid","standard"),
+                          #("MRIExampleSegmentation_Nvcoarse","outflowresistance"),
+                          #("MRIExampleSegmentation_Nvcoarse","qvarlander"),
+                          #("MRIExampleSegmentation_Nvcoarse","steadyStokes"),
+                          ("MRIExampleSegmentation_NreducedCSF","standard"),
+                          #("MRIExampleSegmentation_NreducedCSF","steadyStokes"),
+                          #("MRIExampleSegmentation_NvreducedCSF","standard"),
+                          #("MRIExampleSegmentation_NthinAQ","standard"),
+                          ("MRIExampleSegmentation_Nvcoarse","ModelA"),
+                          ("MRIExampleSegmentation_Nvcoarse","ModelB"),
+                          ("MRIExampleSegmentation_Nvcoarse","ModelC"),
+                          ("MRIExampleSegmentation_Nvcoarse","ModelD"),
+                        ]
 sing_bind = ""
 
 env_params = {"singularity_bind": sing_bind}
 
-movies = ["VentricularFlow", "SagittalPressure", "SagittalDisplacement"]
+movies = ["PressureFlow", "SagittalPressure"] #"VentricularFlow", "SagittalDisplacement"]
 
 try:
     sing_bind = config["singularity_bind"]
@@ -27,75 +37,65 @@ except:
 ruleorder: generateMeshFromStl > generateMeshFromCSG
 
 # input size in mb, num cpus, ram in mb
-ressource_from_inputsize = [(1, 4, 4000), (5, 8, 12000), (10, 12, 25000), (18, 12, 35000),
+resource_from_inputsize = [(1, 4, 4000), (5, 8, 12000), (10, 8, 12000), (18, 12, 35000),
                             (25, 12, 40000),
                             (40, 20, 100000),(60, 24, 100000), (80, 40, 184000),
                             (100, 60, 300000)]
 
 
-def estimate_ressources(wildcards, input, attempt):
+def estimate_resources(wildcards, input, attempt):
     mem = 184000
     cpus = 40
     nodes = 1
-    for res in ressource_from_inputsize:
-        if res[0] >= input.size_mb:
-            cpus = int(min(res[1] + (attempt-1)*4, 40))
-            mem = int(min(res[2]*1.3**(attempt -1), 184000))
-            break
-    nodes = int(np.ceil(cpus/40))
-    tot_minutes = int(cpus*4 * 1.5**(attempt -1))
+    with open(input.config,"r") as config_file:
+        config = yaml.load(config_file, Loader=yaml.FullLoader)
+    with open("config_files/saga_resources.yml","r") as config_file:
+        resources = yaml.load(config_file, Loader=yaml.FullLoader)
+
+    resources = resources[wildcards.mesh]
+    cpus = resources["cpus"]
+    mem = resources["mem"]
+    total_secs = resources["secs_for_factorization"] + resources["secs_per_solve"]*config["num_steps"]
+
+    tot_minutes = total_secs//60
     mins = tot_minutes%60
     hours = tot_minutes//60
+    
+    #for res in resource_from_inputsize:
+    #    if res[0] >= input.size_mb:
+    #        cpus = int(min(res[1] + (attempt-1)*4, 40))
+    #        mem = int(min(res[2]*1.3**(attempt -1), 184000))
+    #        break
+    #nodes = int(np.ceil(cpus/40))
+    #tot_minutes = int(cpus*6 * 1.5**(attempt -1))
+    #mins = tot_minutes%60
+    #hours = tot_minutes//60
+
     return {"mem_mb":mem, "cpus":cpus, "nodes":nodes, "time":f"0{hours}:{mins}:00"}
 
 
 rule all:
     input:
+        #expand("results/{sim}/movies/{movies}/{movies}.mp4", movies=movies,
+        #        sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations ]),
         expand("results/{sim}/movies/{movies}/{movies}.mp4", movies=movies,
-                sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
-        expand("results/{sim}/movies/{movies}/{movies}.mp4", movies=movies,
-                sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
-        expand("results/{sim}/flow_plots/flow_plots.txt",
-                    sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
-        expand("results/{sim}/flow_plots/flow_plots.txt",
-                    sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
-        expand("results/{sim}/pressure_plots/pressure_plots.txt",
-                    sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
-        expand("results/{sim}/pressure_plots/pressure_plots.txt",
-                    sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
+                sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations ]),
+        expand("results/{sim}/flow_key_quantities.yml",
+                    sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations ]),
+        expand("results/{sim}/flow_key_quantities.yml",
+                    sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations ]),
+        expand("results/{sim}/pressure_key_quantities.yml",
+                    sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations ]),
+        expand("results/{sim}/pressure_key_quantities.yml",
+                    sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations ]),
 
 rule all_movies:
     input:
         expand("results/{sim}/movies/{movies}/{movies}.mp4", movies=movies,
-                sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
+                sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations ]),
         expand("results/{sim}/movies/{movies}/{movies}.mp4", movies=movies,
-                sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
+                sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations ]),
 
-rule postP_all:
-    input:
-        expand("results/{sim}/plots/ventr_CSF_flow.png",
-                    sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations.items() ]),
-        expand("results/{sim}/plots/ventr_CSF_flow.png",
-                    sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations.items() ]),
-            
-
-rule all_ideal:
-    input:
-        [f"results/{mesh}_{sim_name}/results.xdmf" for mesh, sim_name in idealized_simulations.items()]
-
-
-rule all_real:
-    input:
-        [f"results/{mesh}_{sim_name}/results.xdmf" for mesh, sim_name in real_brain_simulations.items()]
-
-rule all_meshes:
-    input:
-        [f"meshes/{mesh_name}/{mesh_name}.xdmf" for mesh_name in list(idealized_simulations.keys())],
-        [f"meshes/{mesh_name}/{mesh_name}.xdmf" for mesh_name in list(real_brain_simulations.keys())]
-
-rule ideal_meshes:
-    input:
-        [f"meshes/{mesh_name}/{mesh_name}.xdmf" for mesh_name in list(idealized_simulations.keys())]
 
 
 rule runBrainSim:
@@ -113,13 +113,13 @@ rule runBrainSim:
     log:
         "results/{mesh}_{sim_name}/log"
     resources:
-        mem_mb=lambda wildcards, input, attempt: estimate_ressources(wildcards, input, attempt)["mem_mb"],
-        ntasks=lambda wildcards, input, attempt: estimate_ressources(wildcards, input, attempt)["cpus"],
+        mem_mb=lambda wildcards, input, attempt: estimate_resources(wildcards, input, attempt)["mem_mb"],
+        ntasks=lambda wildcards, input, attempt: estimate_resources(wildcards, input, attempt)["cpus"],
         input_mem_mb=lambda wildcards, input, attempt: int(input.size_mb),
-        time=lambda wildcards, input, attempt: estimate_ressources(wildcards, input, attempt)["time"],
+        time=lambda wildcards, input, attempt: estimate_resources(wildcards, input, attempt)["time"],
     shell:
         """
-        srun --cpu-bind=verbose -m block:block -n {resources.ntasks} /usr/bin/time -p \
+        srun --cpu-bind=verbose -m block:block -n {resources.ntasks} \
         singularity exec \
         {sing_bind} \
         {params.sing_image} \
@@ -202,7 +202,7 @@ rule makePressurePlots:
         subdomain_file="meshes/{mesh}/{mesh}.xdmf",
         sim_config_file="results/{mesh}_{sim_name}/config.yml"
     output:
-        "results/{mesh}_{sim_name}/pressure_plots/pressure_plots.txt"
+        "results/{mesh}_{sim_name}/pressure_key_quantities.yml"
     params:
         sing_image="~/sing_images/biotstokes.simg"
     shell:
@@ -211,8 +211,7 @@ rule makePressurePlots:
         {sing_bind} \
         {params.sing_image} \
         xvfb-run -a python3 scripts/pressurePlots.py \
-        {wildcards.mesh} {wildcards.sim_name} && \
-        touch results/{wildcards.mesh}_{wildcards.sim_name}/pressure_plots/pressure_plots.txt
+        {wildcards.mesh} {wildcards.sim_name}
         """
 
 rule makeFlowPlots:
@@ -221,7 +220,7 @@ rule makeFlowPlots:
         subdomain_file="meshes/{mesh}/{mesh}.xdmf",
         sim_config_file="results/{mesh}_{sim_name}/config.yml"
     output:
-        "results/{mesh}_{sim_name}/flow_plots/flow_plots.txt"
+        "results/{mesh}_{sim_name}/flow_key_quantities.yml"
     params:
         sing_image="~/sing_images/biotstokes.simg"
     shell:
@@ -230,8 +229,7 @@ rule makeFlowPlots:
         {sing_bind} \
         {params.sing_image} \
         xvfb-run -a python3 scripts/flowPlots.py \
-        {wildcards.mesh} {wildcards.sim_name} && \
-        touch results/{wildcards.mesh}_{wildcards.sim_name}/flow_plots/flow_plots.txt
+        {wildcards.mesh} {wildcards.sim_name}
         """
 
 
