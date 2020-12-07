@@ -13,6 +13,7 @@ code = """
       public:
         npArray arr;
         int i = 0;
+        double t = 0.0;
         double f = 0;
         
         ArrayExpression(npArray a) : dolfin::Expression(), arr(a) {}
@@ -31,6 +32,7 @@ code = """
         .def(pybind11::init<npArray>())
         .def_readwrite("i", &ArrayExpression::i)
         .def_readwrite("f", &ArrayExpression::f)
+        .def_readwrite("t", &ArrayExpression::t)
         ;
     }
     
