@@ -25,7 +25,6 @@ def get_source_expression(source_conf, mesh, subdomains,
         values = np.interp(times, t, inflow, period = t[-1])
         values *= source_conf["scaling"]
         values -= values.mean()
-        values*=1.1
         assert len(values) == len(times)
         assert max(values)< 1
         g_source = getArrayExpression(values)

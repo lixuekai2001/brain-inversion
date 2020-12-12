@@ -7,11 +7,12 @@ import pyvista as pv
 from pathlib import Path
 from braininversion.PostProcessing import (get_source_expression,
                                            load_meshes)
+from collections import defaultdict
 import os
 import ufl
 import sys
 plt.style.use('bmh') 
-
+figsize = (7,5)
 porous_id = 1
 fluid_id = 2
 
@@ -22,23 +23,27 @@ names = ["pF", "pP", "phi"]
 
 variables = {"pF":"fluid", "pP":"porous", "phi":"porous",
             "d":"porous", "u":"fluid"}
-
+style_dict = defaultdict(lambda : "-", 
+                        {"lateral_ventricles":":",
+                         "top_sas":"-*",
+                         "top_parenchyma":"-."})
 
 def plot_scalar_time_evolution(point_var_list, mesh_config, results, ylabel,times, plot_dir, scale=1):
-    plt.figure(figsize=(10,8))
+    plt.figure(figsize=figsize)
     plotname = f"pressure_" 
     pressure_data = {}
     for (var, p_name) in point_var_list:
         data = extract_cross_section(results[var], [Point(flatprobes[p_name])]).flatten()*scale
-        plt.plot(times, data,"-*" , label=f"{var} : {p_name}")
+        plt.plot(times, data,style_dict[p_name] , label=f"{p_name}")
         plotname += p_name + "_"
         pressure_data[p_name] = data
-    plt.legend()
+    plt.legend(loc="upper left")
     #plt.grid()
     plt.xlabel("t in s")
     plt.ylabel(ylabel)
     plt.savefig(f"{plot_dir}/{plotname[:-1]}.pdf")
     return pressure_data
+
 
 def intermediates(p1, p2, nb_points=8):
     """"Return a list of nb_points equally spaced points
@@ -60,7 +65,7 @@ def plot_cross_section(p1, p2, n_crossP, variables, results, time_idx, filter_di
         values.append(cs)
 
     for time_idx in time_indices:
-        plt.figure(figsize=(10,8))
+        plt.figure(figsize=figsize)
         for i, var in enumerate(variables):
             plt.plot(dist, values[i][time_idx,:], ".-", label=var)
 
@@ -126,11 +131,12 @@ if __name__=="__main__":
     fluid_filter = interpolate(fluid_filter, DG)
     por_filter = interpolate(por_filter, DG)
 
-    W = FunctionSpace(mesh, "CG", 1)
 
     infile = XDMFFile(sim_file)
+    #infile.read_checkpoint(mesh,"mesh")
+    W = FunctionSpace(mesh, "CG", 1)
 
-    start_idx = 30
+    start_idx = 0
     times = times[start_idx:]
 
     # read simulation data
@@ -147,7 +153,7 @@ if __name__=="__main__":
     # create Pressure over time plots
 
     ylabel = "p in mmHg"
-    point_var_list = [("pF","front_sas"),("phi","front_parenchyma"),
+    point_var_list = [("pF","top_sas"),("phi","top_parenchyma"),
                       ("pF","lateral_ventricles")]
     pdata = plot_scalar_time_evolution(point_var_list, mesh_config, results,
                                        ylabel, times, plot_dir, scale=1/mmHg2Pa)
@@ -156,8 +162,7 @@ if __name__=="__main__":
     key_quantities["min_lat_ventricle_pressure"] = pdata["lateral_ventricles"].min()
     key_quantities["mean_lat_ventricle_pressure"] = pdata["lateral_ventricles"].mean()
 
-
-    point_var_list = [("pF","back_sas"),("phi","back_parenchyma"),("pF","top_sas"),
+    point_var_list = [("pF","top_sas"),("phi","top_parenchyma"),
                       ("pF","lateral_ventricles")]
     plot_scalar_time_evolution(point_var_list, mesh_config, results,
                                ylabel, times, plot_dir, scale=1/mmHg2Pa)
@@ -167,46 +172,54 @@ if __name__=="__main__":
     plot_scalar_time_evolution(point_var_list, mesh_config, results,
                                ylabel, times, plot_dir, scale=1/mmHg2Pa)
 
+    point_var_list = [("pF","top_sas"),
+                      ("pF","lateral_ventricles"),
+                      ("pF","fourth_ventricle")]
+    plot_scalar_time_evolution(point_var_list, mesh_config, results,
+                               ylabel, times, plot_dir, scale=1/mmHg2Pa)
+
     # compute pressure gradient
     gradient_ventr_probe_point = "lateral_ventricles"
     gradient_sas_probe_point = "front_sas"
 
-    def plot_grad(gradient_ventr_probe_point, gradient_sas_probe_point):
-        plotname = f"pressure_gradient_{gradient_ventr_probe_point}_{gradient_sas_probe_point}"
 
-        ventr_point = flatprobes[gradient_ventr_probe_point]
-        sas_point = flatprobes[gradient_sas_probe_point]
-        ventr_data = extract_cross_section(results["pF"], [Point(ventr_point)]).flatten()/mmHg2Pa
-        sas_data = extract_cross_section(results["pF"], [Point(sas_point )]).flatten()/mmHg2Pa
-
-        dist = np.array(ventr_point) - np.array(sas_point)
-        dist = np.linalg.norm(dist)
-        diff = ventr_data - sas_data
-        gradient = diff/dist
-
-        plt.figure(figsize=(10,8))
-        plt.plot(times, gradient , label="gradient")
+    def plot_gradients(point_var_list):
+        plt.figure(figsize=figsize)
+        plotname = f"gradient_" 
+        pressure_data = {}
+        LV_point = flatprobes["lateral_ventricles"]
+        LV_data = extract_cross_section(results["pF"], [Point(LV_point)]).flatten()/mmHg2Pa
+        for (var, p_name) in point_var_list:
+            point = flatprobes[p_name]
+            data = extract_cross_section(results[var], [Point(point)]).flatten()/mmHg2Pa
+            dist = np.array(LV_point) - np.array(point)
+            dist = np.linalg.norm(dist)
+            diff = LV_data - data
+            grad = diff/dist
+            mean_grad = grad.mean()
+            line, = plt.plot(times, grad, style_dict[p_name] , label=f"{p_name}")
+            plt.axhline(mean_grad, c=line.get_color())
+            plotname += p_name + "_"
+            pressure_data[p_name] = data
+        plt.legend(loc="upper left")
         #plt.grid()
         plt.xlabel("t in s")
-        plt.title(f"pressure gradient ({gradient_ventr_probe_point} - {gradient_sas_probe_point})")
-        plt.ylabel("pressure grad in mmHg/m")
-        plt.savefig(f"{plot_dir}/{plotname}.pdf")
-        return diff, gradient,dist
+        plt.ylabel("pressure gradient in mmHg/m")
+        plt.savefig(f"{plot_dir}/{plotname[:-1]}.pdf")
+        return diff, grad, dist
 
-    gradient_ventr_probe_point = "lateral_ventricles"
-    gradient_sas_probe_point = "front_sas"
-    diff,gradient,dist = plot_grad(gradient_ventr_probe_point, gradient_sas_probe_point)
+    diff,gradient,dist = plot_gradients([("phi", "top_parenchyma")])
+    diff,gradient,dist = plot_gradients([("pF", "top_sas")])
+    diff,gradient,dist = plot_gradients([("pF", "fourth_ventricle"),("pF", "top_sas")])
+    diff,gradient,dist = plot_gradients([("phi", "top_parenchyma"),("pF", "top_sas")])
 
-    gradient_ventr_probe_point = "lateral_ventricles"
-    gradient_sas_probe_point = "top_sas"
-    diff, gradient, dist = plot_grad(gradient_ventr_probe_point, gradient_sas_probe_point)
 
     plotname = f"pressure_diff_{gradient_ventr_probe_point}_{gradient_sas_probe_point}"
-    plt.figure(figsize=(10,8))
+    plt.figure(figsize=figsize)
     plt.plot(times, diff )
     #plt.grid()
     plt.xlabel("t in s")
-    plt.title(f"pressure difference ({gradient_ventr_probe_point} - {gradient_sas_probe_point})")
+    #plt.title(f"pressure difference ({gradient_ventr_probe_point} - {gradient_sas_probe_point})")
     plt.ylabel("pressure difference in mmHg")
     plt.savefig(f"{plot_dir}/{plotname}.pdf")
 

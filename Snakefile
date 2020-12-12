@@ -14,7 +14,7 @@ real_brain_simulations = [#"MRIExampleSegmentation_Nvcoarse":"sinusBrainSim",
                           #("MRIExampleSegmentation_Nvcoarse","outflowresistance"),
                           #("MRIExampleSegmentation_Nvcoarse","qvarlander"),
                           #("MRIExampleSegmentation_Nvcoarse","steadyStokes"),
-                          ("MRIExampleSegmentation_NreducedCSF","standard"),
+                          #("MRIExampleSegmentation_NreducedCSF","standard"),
                           #("MRIExampleSegmentation_NreducedCSF","steadyStokes"),
                           #("MRIExampleSegmentation_NvreducedCSF","standard"),
                           #("MRIExampleSegmentation_NthinAQ","standard"),
@@ -23,11 +23,11 @@ real_brain_simulations = [#"MRIExampleSegmentation_Nvcoarse":"sinusBrainSim",
                           ("MRIExampleSegmentation_Nvcoarse","ModelC"),
                           ("MRIExampleSegmentation_Nvcoarse","ModelD"),
                         ]
-sing_bind = ""
+sing_bind = "--bind /run/media/marius/TOSHIBA\ EXT/results/:/run/media/marius/TOSHIBA\ EXT/results/"
 
 env_params = {"singularity_bind": sing_bind}
 
-movies = ["PressureFlow", "SagittalPressure"] #"VentricularFlow", "SagittalDisplacement"]
+movies = ["PressureFlow", "SagittalPressure", "SagittalDisplacement", "FluidVelocity"] #"VentricularFlow"]
 
 try:
     sing_bind = config["singularity_bind"]
@@ -78,7 +78,7 @@ rule all:
     input:
         #expand("results/{sim}/movies/{movies}/{movies}.mp4", movies=movies,
         #        sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations ]),
-        expand("results/{sim}/movies/{movies}/{movies}.mp4", movies=movies,
+        expand("results/{sim}/movies/{movies}/{movies}_array_plot.pdf", movies=movies,
                 sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations ]),
         expand("results/{sim}/flow_key_quantities.yml",
                     sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations ]),
@@ -93,7 +93,7 @@ rule all_movies:
     input:
         expand("results/{sim}/movies/{movies}/{movies}.mp4", movies=movies,
                 sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations ]),
-        expand("results/{sim}/movies/{movies}/{movies}.mp4", movies=movies,
+        expand("results/{sim}/movies/{movies}/{movies}_array_plot.pdf", movies=movies,
                 sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations ]),
 
 
@@ -239,7 +239,7 @@ rule makeMovie:
         subdomain_file="meshes/{mesh}/{mesh}.xdmf",
         sim_config_file="results/{mesh}_{sim_name}/config.yml",
     output:
-        "results/{mesh}_{sim_name}/movies/{movie_name}/{movie_name}.mp4"
+        "results/{mesh}_{sim_name}/movies/{movie_name}/{movie_name}_array_plot.pdf"
     params:
         sing_image="~/sing_images/biotstokes.simg"
     shell:

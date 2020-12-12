@@ -8,15 +8,19 @@ from pathlib import Path
 from braininversion.PostProcessing import (get_source_expression,
                                            load_meshes)
 import os
+from collections import defaultdict
 import ufl
 import sys
 plt.style.use('bmh') 
-
+figsize = (7, 5)
 porous_id = 1
 fluid_id = 2
 
 mmHg2Pa = 132.32
 m3tomL = 1e6
+
+phases = [0.13, .35, 0.56, 0.8]
+
 
 interface_id = 1
 spinal_outlet_id = 3
@@ -25,6 +29,12 @@ names = ["d", "u"]
 
 variables = {"pF":"fluid", "pP":"porous", "phi":"porous",
             "d":"porous", "u":"fluid"}
+style_dict = defaultdict(lambda : "-", 
+                        {"lateral_ventricles":":",
+                         "top_sas":"-*",
+                         "top_parenchyma":"-."})
+
+
 
 def domain_statistic(stat_func, var, domain, time_idx):
     return stat_func(extract_cells(results[var][time_idx], label_marker, name_to_label[domain]))
@@ -103,15 +113,28 @@ if __name__=="__main__":
     dx_par = Measure("dx", domain=mesh, subdomain_data=label_marker, subdomain_id = name_to_label["parenchyma"])
     parenchyma_vol = assemble(Constant(1)*dx_par)
     inflow = source_inflow*parenchyma_vol*m3tomL
-    plt.figure(figsize=(10,8))
+    plt.figure(figsize=figsize)
     plt.plot(times,inflow , "-*")
     #plt.grid()
     plt.xlabel("t in s")
-    plt.ylabel("inflow [ml/s]")
-    plt.title("net blood inflow")
+    plt.ylabel("inflow ml/s")
+    #plt.title("net blood inflow")
     plt.savefig(f"{plot_dir}/{plotname}.pdf")
 
-    print("inflow plot created")
+
+    plotname = "source_inflow_phases"
+    phases_end = np.where(times==1)[0][0] 
+    plt.figure(figsize=figsize)
+    plt.plot(times[:phases_end +1],inflow[:phases_end +1] , "-*")
+    plt.xlabel("t in s")
+    plt.ylabel("inflow in ml/s")
+    #plt.title("net blood inflow")
+    for i,pt in enumerate(phases):
+        plt.axvline(pt, c="red", ls=":")
+        plt.annotate(f"({i+1})", (pt - 0.05, 9.0))
+    plt.savefig(f"{plot_dir}/{plotname}.pdf")
+
+
 
     key_quantities["max_blood_inflow"] = inflow[end_idx:].max()
     key_quantities["min_blood_inflow"] = inflow[end_idx:].min()
@@ -136,7 +159,7 @@ if __name__=="__main__":
     title = "aqueduct velocity"
     point = "aqueduct"  
     var = "u"
-    plt.figure(figsize=(10,8))
+    plt.figure(figsize=figsize)
     data = extract_cross_section(results[var], [Point(flatprobes[point])])*1e3
     data = data[:,0,:]
     tot = np.linalg.norm(data, axis=1)
@@ -146,19 +169,19 @@ if __name__=="__main__":
     #plt.grid()
     plt.xlabel("time in s")
     plt.ylabel("u in mm/s")
-    plt.title(title)
-    plt.savefig(f"{plot_dir}/{plotname}.png")
+    #plt.title(title)
+    plt.savefig(f"{plot_dir}/{plotname}.pdf")
 
     # compute outflow into spinal canal 
     ds_outflow = Measure("ds", domain=mesh, subdomain_data=boundary_marker, subdomain_id=spinal_outlet_id)
     n = FacetNormal(mesh)
 
     spinal_outflow = np.array([assemble(dot(u,n)*ds_outflow) for u in results["u"]])
-    plt.figure(figsize=(10,8))
-    plt.plot(times, spinal_outflow*m3tomL, label="outflow into spinal canal")
+    plt.figure(figsize=figsize)
+    plt.plot(times, spinal_outflow*m3tomL, "*-", label="outflow into spinal canal")
     plt.legend()
     plt.xlabel("time in s")
-    plt.ylabel("flowrate in mL/ s")
+    plt.ylabel("flow rate in ml/s")
     #plt.title("CSF outflow into spinal canal")
     plt.tight_layout()
     plt.savefig(f"{plot_dir}/spinal_out_CSF.pdf")
@@ -176,14 +199,14 @@ if __name__=="__main__":
     key_quantities["mean_cum_spinal_outflow"] = cum_outflow[end_idx:].mean()
 
 
-    plt.figure(figsize=(10,8))
+    plt.figure(figsize=figsize)
     plt.plot(times, cum_outflow*m3tomL, "-*", label="cumulative outflow")
     plt.legend()
     plt.xlabel("time in s")
-    plt.ylabel("V in mL")
+    plt.ylabel("V in ml")
     #plt.title("cumulative CSF outflow into spinal canal")
     plt.tight_layout()
-    plt.savefig(f"{plot_dir}/cum_spinal_out_CSF.png")
+    plt.savefig(f"{plot_dir}/cum_spinal_out_CSF.pdf")
 
     flow_pairs = [("lateral_ventricles", "foramina"),
                 #("foramina", "third_ventricle"),
@@ -202,24 +225,24 @@ if __name__=="__main__":
         key_quantities[f"mean_flow_{fp[0]} -> {fp[1]}"] = flow[end_idx:].mean()
 
 
-    plt.figure(figsize=(10,8))
+    plt.figure(figsize=figsize)
     for name, flow in internal_flows.items():
         plt.plot(times, flow*m3tomL, "-*", label=name)
     #plt.plot(times, spinal_outflow*m3tomL, "-*", label="spinal outflow")
 
     plt.legend()
     plt.xlabel("time in s")
-    plt.ylabel("flowrate in mL/ s")
+    plt.ylabel("flow rate in ml/s")
     #plt.title("ventricular CSF flow")
     plt.tight_layout()
     plt.savefig(f"{plot_dir}/ventr_CSF_flow.pdf")
     # max value according to Baladont: 0.2 mL/s
 
 
-    plt.figure(figsize=(10,8))
+    plt.figure(figsize=figsize)
     for name, flow in internal_flows.items():
         cum_flow = np.cumsum(flow)*dt
-        plt.plot(times, np.cumsum(flow)*dt*m3tomL, label=name)
+        plt.plot(times, np.cumsum(flow)*dt*m3tomL, "*-", label=name)
         key_quantities[f"max_cum_flow_{name}"] = cum_flow[end_idx:].max()
         key_quantities[f"min_cum_flow_{name}"] = cum_flow[end_idx:].min()
         key_quantities[f"mean_cum_flow_{name}"] = cum_flow[end_idx:].mean()
@@ -228,7 +251,7 @@ if __name__=="__main__":
 
     plt.legend()
     plt.xlabel("time in s")
-    plt.ylabel("V in mL")
+    plt.ylabel("V in ml")
     #plt.title("cumulative ventricular CSF flow")
     plt.tight_layout()
     plt.savefig(f"{plot_dir}/cum_CSF_flow.pdf")
@@ -239,12 +262,12 @@ if __name__=="__main__":
     dx = Measure("dx", domain=mesh, subdomain_data=subdomain_marker)
     n = FacetNormal(mesh)("-")
     par_dV = np.array([assemble(dot(d("-"), n)*ds_interf + Constant(0.0)*dx) for d in results["d"]])
-    plt.figure(figsize=(10,8))
+    plt.figure(figsize=figsize)
     plt.plot(times, par_dV*m3tomL, label="DV")
     plt.legend()
     plt.xlabel("time in s")
     plt.ylabel("dV in ml")
-    plt.title("parenchyma volume change")
+    #plt.title("parenchyma volume change")
     plt.savefig(f"{plot_dir}/par_vol_change.pdf")
 
 
@@ -261,7 +284,7 @@ if __name__=="__main__":
 
     max_disp_over_time = np.array([ vecmax(d) for d in results["d"]])
     #mean_disp_over_time = np.array( [assemble( d*dx(name_to_label["parenchyma"]) ) for d in results["d_abs"]])/parenchyma_vol
-    plt.figure(figsize=(10,8))
+    plt.figure(figsize=figsize)
     plt.plot(times, max_disp_over_time)
     #plt.plot(times, mean_disp_over_time, "mean")
     plt.legend()

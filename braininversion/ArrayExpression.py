@@ -7,7 +7,7 @@ code = """
     #include <pybind11/numpy.h>
     namespace py = pybind11;
     
-    typedef Eigen::Ref<Eigen::VectorXd> npArray;
+    typedef Eigen::VectorXd npArray;
 
     class ArrayExpression : public dolfin::Expression {
       public:
