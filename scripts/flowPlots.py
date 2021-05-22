@@ -12,7 +12,7 @@ from collections import defaultdict
 import ufl
 import sys
 plt.style.use('bmh') 
-figsize = (7, 5)
+figsize = (6, 4)
 porous_id = 1
 fluid_id = 2
 
@@ -97,8 +97,10 @@ if __name__=="__main__":
     V_abs = FunctionSpace(mesh, "CG", 2)
     infile = XDMFFile(sim_file)
 
-    key_quantities = {}
 
+    key_quantities = {"num_cells":mesh.num_cells(),
+                      "num_vertices":mesh.num_vertices()}
+                      
     start_idx = np.where(times==1)[0][0] 
     end_idx = np.where(times==T - 1)[0][0] - start_idx
 
@@ -258,17 +260,17 @@ if __name__=="__main__":
 
 
     # compute parenchyma volume change
-    ds_interf = Measure("dS", domain=mesh, subdomain_data=boundary_marker, subdomain_id=interface_id)
-    dx = Measure("dx", domain=mesh, subdomain_data=subdomain_marker)
-    n = FacetNormal(mesh)("-")
-    par_dV = np.array([assemble(dot(d("-"), n)*ds_interf + Constant(0.0)*dx) for d in results["d"]])
-    plt.figure(figsize=figsize)
-    plt.plot(times, par_dV*m3tomL, label="DV")
-    plt.legend()
-    plt.xlabel("time in s")
-    plt.ylabel("dV in ml")
-    #plt.title("parenchyma volume change")
-    plt.savefig(f"{plot_dir}/par_vol_change.pdf")
+    # ds_interf = Measure("dS", domain=mesh, subdomain_data=boundary_marker, subdomain_id=interface_id)
+    # dx = Measure("dx", domain=mesh, subdomain_data=subdomain_marker)
+    # n = FacetNormal(mesh)("-")
+    # par_dV = np.array([assemble(dot(d("-"), n)*ds_interf + Constant(0.0)*dx) for d in results["d"]])
+    # plt.figure(figsize=figsize)
+    # plt.plot(times, par_dV*m3tomL, label="DV")
+    # plt.legend()
+    # plt.xlabel("time in s")
+    # plt.ylabel("dV in ml")
+    # #plt.title("parenchyma volume change")
+    # plt.savefig(f"{plot_dir}/par_vol_change.pdf")
 
 
     # displacement statistics

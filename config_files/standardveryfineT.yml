@@ -2,7 +2,7 @@
 num_threads : 4
 log_level : 20
 T : 3.0
-num_steps : 360
+num_steps : 480
 OOC : False
 BLR : False
 material_parameter:
@@ -11,7 +11,7 @@ material_parameter:
   rho_s : 1082
   alpha : 1.0
   kappa : 1.0e-16
-  c :   1.0e-5
+  c :   1.0e-6
   rho_f : 1007
   mu_f : 0.0008
 source_data:

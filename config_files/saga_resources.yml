@@ -1,26 +1,31 @@
 
 MRIExampleSegmentation_Nvcoarse :
-  secs_per_solve : 3
-  secs_for_factorization : 100
-  mem : 40000
-  cpus : 16
+  secs_per_solve : 5
+  secs_for_factorization : 10
+  mem : 10000
+  cpus : 8
 MRIExampleSegmentation_Ncoarse :
-  secs_per_solve : 15 # OOC: 160
+  secs_per_solve : 6 # OOC: 160
   secs_for_factorization : 600 # OOC: 400
   mem : 180000
   cpus : 32
 MRIExampleSegmentation_Nmid :
-  secs_per_solve : 180
-  secs_for_factorization : 450
-  mem : 180000
-  cpus : 20
+  secs_per_solve : 6 # OOC: 160
+  secs_for_factorization : 800 # OOC: 400
+  mem : 190000
+  cpus : 32
+MRIExampleSegmentation_Nfine :
+  secs_per_solve : 18 # OOC: 160
+  secs_for_factorization : 800 # OOC: 400
+  mem : 190000
+  cpus : 32
 MRIExampleSegmentation_NvreducedCSF :
   secs_per_solve : 45
   secs_for_factorization : 250
   mem : 40000
   cpus : 12
 MRIExampleSegmentation_NreducedCSF :
-  secs_per_solve : 60
+  secs_per_solve : 12
   secs_for_factorization : 300
   mem : 50000
   cpus : 20

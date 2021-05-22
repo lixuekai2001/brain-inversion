@@ -2,7 +2,7 @@
 num_threads : 4
 log_level : 20
 T : 3.0
-num_steps : 180
+num_steps : 360
 OOC : False
 BLR : False
 material_parameter:

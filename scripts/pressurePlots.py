@@ -12,7 +12,7 @@ import os
 import ufl
 import sys
 plt.style.use('bmh') 
-figsize = (7,5)
+figsize = (6,4)
 porous_id = 1
 fluid_id = 2
 
@@ -148,7 +148,8 @@ if __name__=="__main__":
             results[n].append(f)
     infile.close()
 
-    key_quantities = {}
+    key_quantities = {"num_cells":mesh.num_cells(),
+                      "num_vertices":mesh.num_vertices()}
 
     # create Pressure over time plots
 
@@ -209,9 +210,9 @@ if __name__=="__main__":
         return diff, grad, dist
 
     diff,gradient,dist = plot_gradients([("phi", "top_parenchyma")])
-    diff,gradient,dist = plot_gradients([("pF", "top_sas")])
     diff,gradient,dist = plot_gradients([("pF", "fourth_ventricle"),("pF", "top_sas")])
     diff,gradient,dist = plot_gradients([("phi", "top_parenchyma"),("pF", "top_sas")])
+    diff,gradient,dist = plot_gradients([("pF", "top_sas")])
 
 
     plotname = f"pressure_diff_{gradient_ventr_probe_point}_{gradient_sas_probe_point}"
