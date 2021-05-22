@@ -22,7 +22,8 @@ snes_solver_parameters = {"nonlinear_solver": "snes",
 
 
 def eps(u):
-    return 0.5*(nabla_grad(u) + nabla_grad(u).T)
+    return sym(grad(u))
+    #return 0.5*(nabla_grad(u) + nabla_grad(u).T)
 
 
 def solve_biot_navier_stokes(mesh, T, num_steps,
@@ -161,14 +162,15 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
 
     def proj_t(vec):
         return vec-dot(vec,n)*n
-                    
+
+
     def tang_interf(u,v):
         #return (dot(u("+"), tau1) + dot(u("+"), tau2))*(dot(v("+"), tau1) + dot(v("+"), tau2))*ds_Sig 
         #return dot(u("+"), tau1)*dot(v("+"), tau1)*ds_Sig + dot(u("+"), tau2)*dot(v("+"), tau2)*ds_Sig + inner(u,v)*Constant(0.0)*dxD
         #tau = as_vector([0,1])
         #return dot(u("+"), tau)* dot(v("+"),tau)*ds_Sig #+ inner(u,v)*Constant(0.0)*dxD
-        return inner(proj_t(u("+")), proj_t(v("+")))*ds_Sig + inner(u,v)*Constant(0.0)*dxD
-
+        #return inner(proj_t(u("+")), proj_t(v("+")))*ds_Sig + inner(u,v)*Constant(0.0)*dxD
+        return dot(cross(u("+"),n), cross(v("+"),n))*ds_Sig + inner(u,v)*Constant(0.0)*dxD
     # define forms
 
     if linearize=="steadyStokes":
@@ -253,21 +255,47 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
     # order trial: u, pF, d, pP, phi
     # order test: v, qF, w, qP, psi
 
-
     lhs = [[a_F(u,v) + c_F(u,v), b_1_F(v, pF), b_3_Sig(v, d/dt) , b_2_Sig(v, pP), 0                 ],
         [ b_1_F(u, qF)       ,  0          , 0                , 0             , 0                 ],
         [ b_3_Sig(u, w)      ,  0          , a_1_P(d,w)       , b_4_Sig(w, pP), b_1_P(w, phi)     ],
-        [ -b_2_Sig(u, qP)    ,  0          , -b_4_Sig(d/dt, qP), a_2_P(pP, qP) , -b_2_P(phi/dt, qP)], # sign of b_2_Sig(u, qP)?
+        [ b_2_Sig(u, qP)    ,  0          , b_4_Sig(d/dt, qP), -a_2_P(pP, qP) , b_2_P(phi/dt, qP)], # *-1
         [ 0                  ,  0          , b_1_P(d, psi)    , b_2_P(psi, pP), -a_3_P(phi, psi) ]]
 
-    #sol = BlockFunction(H)
+
+    b = [[2*mu_f*inner(eps(u),eps(v))*dxF+ gamma*mu_f/sqrt(kappa)*tang_interf(u,v), 0, 0, 0, 0],
+        [0, 1/mu_f*pF*qF*dxF, 0, 0, 0],
+        [0, 0, 2*mu_s*inner(eps(d), eps(w))*dxP + gamma*mu_f/sqrt(kappa)*tang_interf(d,w), 0, 0],
+        [0, 0, 0, (c + alpha**2/lmbda)*pP*qP*dxP+kappa/mu_f*inner(grad(pP),grad(qP))*dxP, 0],
+        [0, 0, 0, 0, 1/mu_s*phi*psi*dxP]]
+
 
     if linearize==True or linearize=="steadyStokes":
-        #sol = BlockFunction(H)
         AA = block_assemble(lhs, keep_diagonal=True)
         bcs.apply(AA)
-        solver = PETScLUSolver(AA, "mumps")
-        solver.parameters["symmetric"] = True
+        iterative_solver = False
+        if iterative_solver:
+            B = block_assemble(b, keep_diagonal=True)
+            bcs.apply(B)
+            print("starting iterative solver...")
+            solver = PETScKrylovSolver("minres", "amg")
+            PETScOptions.set('ksp_monitor_true_residual')   
+            #PETScOptions.set("ksp_monitor_singular_value")
+            #PETScOptions.set('ksp_type', "minres")   
+            #PETScOptions.set('pc_type', "lu")   
+
+            solver.set_from_options()
+
+            solver.set_operators(AA, B)
+
+            #solver.parameters['monitor_convergence'] = True
+            solver.parameters['report'] = True
+            #solver.parameters['absolute_tolerance'] = 0.0
+            #solver.parameters['relative_tolerance'] = 1e-6
+            solver.parameters['maximum_iterations'] = 5000
+            solver.parameters['nonzero_initial_guess'] = True
+
+        else:
+            solver = PETScLUSolver(AA, "mumps")
 
         
     if filename:
@@ -276,9 +304,10 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
 
         output_checkp.parameters["functions_share_mesh"] = True
         output_checkp.parameters["rewrite_function_mesh"] = False
+        output_checkp.parameters["flush_output"] = True
         output_legacy.parameters["functions_share_mesh"] = True
         output_legacy.parameters["rewrite_function_mesh"] = False
-        #output_checkp.write_checkpoint(subdomain_marker, "subdomains")
+        output_legacy.parameters["flush_output"] = True
 
     names = ["velocity u", "fluid pressure pF", "displacement d",
             "fluid pressure in porous domain pP", "total pressure phi"]
@@ -286,10 +315,14 @@ def solve_biot_navier_stokes(mesh, T, num_steps,
     names = short_names
 
     def solve_linearized():
-        rhs = [F_F_n(v), 0, F_P_n(w), G_n(qP), 0]
+        rhs = [F_F_n(v), 0, F_P_n(w), -G_n(qP), 0]
         FF = block_assemble(rhs)
         bcs.apply(FF)
-        solver.solve(previous.block_vector(), FF)
+        if iterative_solver:
+            num_its = solver.solve(previous.block_vector(), FF)
+            print(f"number of iterations: {num_its}")
+        else:
+            solver.solve(previous.block_vector(), FF)
         previous.block_vector().block_function().apply("to subfunctions")
         #solver.solve(sol.block_vector(), FF)
         #sol.block_vector().block_function().apply("to subfunctions")
