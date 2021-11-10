@@ -10,6 +10,8 @@ import numpy as np
 import yaml
 import sys
 import pyvista as pv
+pv.set_plot_theme("document")
+
 
 name = "SagittalDisplacement"
 fps = 5
@@ -95,7 +97,6 @@ class ImageGenerator(object):
 
 
 def create_array_plot(path, time_indices, source_expr, img_gen_func, times):
-    pv.set_plot_theme("document")
 
     nind = len(time_indices)
     size = 8
@@ -128,7 +129,7 @@ if __name__=="__main__":
     img_gen = ImageGenerator(mesh_name, sim_name)
     img_gen_func = lambda time_idx: img_gen.generate_image(time_idx)
 
-    create_movie(f"{movie_path}/movie_{name}", img_gen.times, img_gen.source_expr, img_gen_func, 
+    create_movie(f"{movie_path}/{name}", img_gen.times, img_gen.source_expr, img_gen_func, 
                         fps=fps, interpolate_frames=interpFrames)
 
 

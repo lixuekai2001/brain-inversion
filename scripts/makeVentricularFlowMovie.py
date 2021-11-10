@@ -49,10 +49,35 @@ class VentricularFlowImageGenerator(object):
         pF = f"pF_{int(time_idx)}"
         arrows = self.data.glyph(scale=u, factor=1, orient=u)
         p.add_mesh(arrows, scalars=pF, cmap="balance", clim=self.pF_range) #stitle=f"{var} Magnitude",
-        p.add_mesh(self.data, color="white", opacity=0.2) #stitle=f"{var} Magnitude",
+        #p.add_mesh(self.data, color="white", opacity=0.2) #stitle=f"{var} Magnitude",
         p.camera_position = cpos #camera position, focal point, and view up.
         return p, self.pF_range
 
+def create_array_plot(path, time_indices, source_expr, img_gen_func, times):
+    pv.set_plot_theme("document")
+
+    nind = len(time_indices)
+    size = 8
+
+    fig, axes = plt.subplots(nind, 3, figsize=(size*3.3, nind*size))
+    for j, idx in enumerate(time_indices):
+        for i,view in enumerate(views):
+            p, _ = img_gen_func(j, view=view)
+            img = p.screenshot(transparent_background=True, return_img=True,
+                               window_size=None,
+                               filename=path + f"_{view}_{times[idx]:.3f}.png")
+            p.clear()
+            #plt.figure(i*j)
+            #plt.imshow(img)
+            #plt.axis('off')
+            #plt.savefig(path + f"{view}_{times[idx]:.4f}.pdf")
+            #plt.tight_layout()
+            axes[j,i].imshow(img)
+            axes[j,i].set_title(f"t = {times[idx]:.3f} s", fontsize=26)
+            axes[j,i].axis('off')
+    
+    fig.tight_layout()
+    fig.savefig(path + "_array_plot.pdf")
 
 
 
@@ -67,3 +92,9 @@ if __name__=="__main__":
 
     create_movie(f"{movie_path}/{name}", img_gen.times, img_gen.source_expr, img_gen_func, 
                         fps=fps, interpolate_frames=interpFrames)
+
+    phase_times = [0.13, .35, 0.56, 0.8] #[2.2, 2.4, 2.6, 2.8, 3.0]
+    img_gen = VentricularFlowImageGenerator(mesh_name, sim_name, times=phase_times)
+
+    img_gen_func = lambda time_idx, view: img_gen.generate_image(time_idx, view=view)
+    create_array_plot(f"{movie_path}/{name}", img_gen.time_indices, img_gen.source_expr, img_gen_func, img_gen.times)

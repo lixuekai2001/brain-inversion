@@ -10,7 +10,7 @@ real_brain_simulations = [#"MRIExampleSegmentation_Nvcoarse":"sinusBrainSim",
                           #("MRIExampleSegmentation_Ncoarse","standard"),
                           ("MRIExampleSegmentation_Nvcoarse","standard"),
                           ("MRIExampleSegmentation_Ncoarse","standard"),
-                          #("MRIExampleSegmentation_Nmid","standard"),
+                          ("MRIExampleSegmentation_Nmid","standard"),
                           #("MRIExampleSegmentation_Nvcoarse","outflowresistance"),
                           #("MRIExampleSegmentation_Nvcoarse","qvarlander"),
                           #("MRIExampleSegmentation_Nvcoarse","steadyStokes"),
@@ -91,8 +91,8 @@ rule all:
 
 rule all_movies:
     input:
-        expand("results/{sim}/movies/{movies}/{movies}.mp4", movies=movies,
-                sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations ]),
+        #expand("results/{sim}/movies/{movies}/{movies}.mp4", movies=movies,
+        #        sim=[f"{mesh}_{sim_name}" for mesh, sim_name in idealized_simulations ]),
         expand("results/{sim}/movies/{movies}/{movies}_array_plot.pdf", movies=movies,
                 sim=[f"{mesh}_{sim_name}" for mesh, sim_name in real_brain_simulations ]),
 
@@ -239,7 +239,9 @@ rule makeMovie:
         subdomain_file="meshes/{mesh}/{mesh}.xdmf",
         sim_config_file="results/{mesh}_{sim_name}/config.yml",
     output:
-        "results/{mesh}_{sim_name}/movies/{movie_name}/{movie_name}_array_plot.pdf"
+        "results/{mesh}_{sim_name}/movies/{movie_name}/{movie_name}_array_plot.pdf",
+        "results/{mesh}_{sim_name}/movies/{movie_name}/{movie_name}.mp4"
+
     params:
         sing_image="~/sing_images/biotstokes.simg"
     shell:

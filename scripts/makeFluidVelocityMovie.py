@@ -132,3 +132,10 @@ if __name__=="__main__":
     img_gen_func = lambda time_idx, view: img_gen.generate_image(time_idx, view=view)
     create_array_plot(f"{movie_path}/{name}", img_gen.time_indices,
                       img_gen.source_expr, img_gen_func, img_gen.times)
+    
+    img_gen = ImageGenerator(mesh_name, sim_name)
+    img_gen_func = lambda time_idx: img_gen.generate_image(time_idx)
+
+    create_movie(f"{movie_path}/{name}", img_gen.times, img_gen.source_expr, img_gen_func, 
+                        fps=fps, interpolate_frames=interpFrames)
+

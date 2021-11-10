@@ -10,6 +10,8 @@ import numpy as np
 import yaml
 import sys
 import pyvista as pv
+pv.set_plot_theme("document")
+
 
 name = "PressureFlow"
 fps = 5
@@ -66,6 +68,7 @@ class ImageGenerator(object):
 
         self.u_range = self.get_range("u", self.data_u)
         self.pF_range = self.get_range("pF", self.data_pF)
+        self.static_colorbar = False
 
         #self.phi_range = self.get_range("phi", self.data_phi)
         #self.pressure_range = [min(self.pF_range[0], self.phi_range[0]),
@@ -96,11 +99,15 @@ class ImageGenerator(object):
         clipped_data_u["logu"] = np.log10(np.linalg.norm(clipped_data_u[u], axis=1) + 1)
         arrows_u = clipped_data_u.glyph(scale="logu", factor=2e-2, orient=u, tolerance=0.01, absolute=False
                                         )
+        if self.static_colorbar:
+            clim = self.pF_range
+        else:
+            clim = None
         #p.add_mesh(arrows_u, scalars='GlyphScale', color ="white"), #clim=self.u_range,
                    #stitle="vel Magnitude [m/s]", scalar_bar_args = scalar_bars["right"])
         p.add_mesh(arrows_u, cmap ="tempo", scalars = arrows_u["logu"]**10 - 1, clim=(0 , 20), #clim=self.u_range,  scalars=u',
                    stitle="u [mm/s]", scalar_bar_args = scalar_bars["left"])
-        p.add_mesh(clipped_data_pF, scalars=pF, cmap="balance", opacity=1.0,
+        p.add_mesh(clipped_data_pF, scalars=pF, cmap="balance", opacity=1.0, clim=clim,
                    scalar_bar_args = scalar_bars["right"], stitle="ICP [mmHg]") 
 
         p.camera_position = cpos[view] #camera position, focal point, and view up.
@@ -108,7 +115,6 @@ class ImageGenerator(object):
 
 
 def create_array_plot(path, time_indices, source_expr, img_gen_func, times):
-    pv.set_plot_theme("document")
 
     nind = len(time_indices)
     size = 8
@@ -152,9 +158,10 @@ if __name__=="__main__":
     create_array_plot(f"{movie_path}/{name}", img_gen.time_indices,
                       img_gen.source_expr, img_gen_func, img_gen.times)
 
-    #img_gen = ImageGenerator(mesh_name, sim_name)
-    #img_gen_func = lambda time_idx: img_gen.generate_image(time_idx)
+    img_gen = ImageGenerator(mesh_name, sim_name)
+    img_gen.static_colorbar = True
+    img_gen_func = lambda time_idx: img_gen.generate_image(time_idx)
 
-    #create_movie(f"{movie_path}/{name}_movie", img_gen.times, img_gen.source_expr, img_gen_func, 
-     #           fps=fps, interpolate_frames=interpFrames)
+    create_movie(f"{movie_path}/{name}", img_gen.times, img_gen.source_expr, img_gen_func, 
+                fps=fps, interpolate_frames=interpFrames)
 

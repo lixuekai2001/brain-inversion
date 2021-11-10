@@ -1,8 +1,8 @@
 
 MRIExampleSegmentation_Nvcoarse :
   secs_per_solve : 5
-  secs_for_factorization : 10
-  mem : 10000
+  secs_for_factorization : 200
+  mem : 20000
   cpus : 8
 MRIExampleSegmentation_Ncoarse :
   secs_per_solve : 6 # OOC: 160
